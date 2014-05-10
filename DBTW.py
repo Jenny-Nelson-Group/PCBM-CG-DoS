@@ -17,8 +17,6 @@ except ImportError: #If no brewer2mpl library
     colours='brgcmkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkk' # Aaah, we fade to grey (fade to grey)
     print "Hey - no brew2mpl. Thus a simple palette."
 
-# Matplotlib setup for publication quality figures...
-pl.ion()
 # Matplotlib - initialise figure
 fig=pl.figure()
 pl.axes().set_aspect('equal')
@@ -29,20 +27,28 @@ n=1000
 
 # Initialise our Hamiltonian matrix
 H = np.zeros ( (n,n) )
-# Fill the diagonal elements with site energy; for tight binding
-np.fill_diagonal(H, -6.0)
 
-print H 
-
+# Load off-diagonal elements from text file. Format:-
+#  (index_i,int) (index_j,int) (value,double)
 filein=np.loadtxt("test.edges",
-        dtype=([('f1', '<u4'), ('f2', '<u4'), ('f3',np.float64)]) )
+        dtype=([('f1', '<u4'), ('f2', '<u4'), ('f3',np.float64)]) ) #specify datatypes: 4byte int, 4byte int, float64
 
 for datum in filein:
 #    print datum
-    H[datum[0],datum[1]]=datum[2]
+    H[datum[0],datum[1]]=datum[2] # Populate Hamiltonian with off diagonal elements
+    H[datum[1],datum[0]]=datum[2]  # Hermition...
 
-print "Loaded Hamiltonian... Time to diagonalise!"
+print "Loaded Hamiltonian... "
 
+pl.imshow(H,extent=(H[:,0].min(), H[:,0].max(), H[:,1].max(), H[:,1].min()),
+        interpolation='nearest', cmap=pl.cm.RdBu)
+pl.colorbar()
+pl.show()
+
+# Fill the diagonal elements with site energy; for tight binding
+np.fill_diagonal(H, -6.0)
+
+print "Hamiltonian fully setup, time to solve!"
 # OK; here we go - let's solve that TB Hamiltonian!
 evals,evecs=np.linalg.eigh(H)
 
