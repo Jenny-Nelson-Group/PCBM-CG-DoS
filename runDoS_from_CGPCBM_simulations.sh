@@ -5,7 +5,7 @@ do
 # # with our dirty little C code program, and a bit of AWK manipulation
 pdbcat -fields "${data}"  | grep " C " | awk 'BEGIN{print 1000, 20}{print $10,$11,$12}'  | ./cg-pcbm-j > ${data%.*}.edges
 
-python DoS_by_TB.py ${data%.*}.edges
+python DBTW.py ${data%.*}.edges
 
 #pdbcat -fields bis_5ns.pdb  | grep " C " | awk '{print $10,$11,$12,"-"}' > bis.xyz
 
