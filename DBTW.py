@@ -21,9 +21,8 @@ except ImportError: #If no brewer2mpl library
 fig=pl.figure()
 pl.axes().set_aspect('equal')
 
-pl.title("Dos by TB")
 
-n=1000
+n=10
 
 # Initialise our Hamiltonian matrix
 H = np.zeros ( (n,n) )
@@ -40,8 +39,8 @@ for datum in filein:
 
 print "Loaded Hamiltonian... "
 
-pl.imshow(H,extent=(H[:,0].min(), H[:,0].max(), H[:,1].max(), H[:,1].min()),
-        interpolation='nearest', cmap=pl.cm.RdBu)
+pl.title("Off-diagonal elements of Hamiltonian")
+pl.imshow(H,interpolation='nearest', cmap=pl.cm.PuBuGn) # 2D colourmap of Hamiltonian, nearest interpolation.
 pl.colorbar()
 pl.show()
 
@@ -57,6 +56,7 @@ print "Eigenvectors", evecs
 print "first Eigenvector..."
 print evecs[0]
 
+pl.title("DoS by TightBinding")
 pl.subplot(211) #5 subplots stacked on top of one another
 
 #Plot Eigenvalues with filled-in Eigenvectors^2 / electron probabilities
@@ -74,7 +74,7 @@ pl.hist(evals,100,histtype='stepfilled',color=colours[0])
 pl.ylabel("DoS")
 pl.yticks(fontsize=9)
 
-#pl.tight_layout(pad=0.3)
+pl.tight_layout(pad=0.3)
 
 pl.show() #Displays plots!
 
