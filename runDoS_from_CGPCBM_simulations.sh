@@ -1,9 +1,10 @@
 for data 
 do
 
+    echo "Generating Js from CGMD datafile ${data}"
 #OK, let's generate our edges (connection data)
 # # with our dirty little C code program, and a bit of AWK manipulation
-pdbcat -fields "${data}"  | grep " C " | awk 'BEGIN{print 1000, 20}{print $10,$11,$12}'  | ./cg-pcbm-j > ${data%.*}.edges
+pdbcat -fields "${data}"  | grep " C " | awk 'BEGIN{print 1000, 20}{print $10,$11,$12}'  | ./cg-pcbm-j > test.edges #> ${data%.*}.edges
 
 python DBTW.py ${data%.*}.edges
 
