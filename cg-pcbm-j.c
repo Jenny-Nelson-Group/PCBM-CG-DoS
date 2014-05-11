@@ -32,7 +32,7 @@ main()
                 d= r[0]*r[0] + r[1]*r[1] + r[2]*r[2];
 //                printf("%d %d \t%f %f %f\t%f\n",i,j,coords[i][0],coords[i][1],coords[i][2],d);
                 if (d<=mind*mind)
-                    printf("%d\t%d\t%lf\n",i,j,exp(-sqrt(d*0.5))); //increasing factor makes J tail off 'sharper'
+                    printf("%d\t%d\t%lf\n",i,j,exp(-sqrt(d)*0.4)); //increasing factor makes J tail off 'sharper'
             }
 
 }
