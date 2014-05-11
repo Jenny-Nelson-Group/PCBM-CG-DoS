@@ -1,5 +1,6 @@
-# DBTW.py - generate DoS from CG Js read in from file
+#!/usr/bin/env python
 
+# DBTW.py - generate DoS from CG Js read in from file
 # Down by the water // My lovely daughter // I took her home
 
 # Import our numeric library
@@ -7,6 +8,9 @@ import numpy as np
 import matplotlib.pyplot as pl
 
 import datetime # current date for log files etc.
+
+from IPython import embed# we do this so we can drop to interactive python for debugging; major Python coolio
+ #  # --> embed() <-- just add this to any point in code, and TADA!
 
 ### Matplotlib setup
 #Pretty colours; via http://blog.olgabotvinnik.com/post/58941062205/prettyplotlib-painlessly-create-beautiful-matplotlib
@@ -52,10 +56,10 @@ print "Hamiltonian fully setup, time to solve!"
 # OK; here we go - let's solve that TB Hamiltonian!
 evals,evecs=np.linalg.eigh(H)
 
-print "Eigenvalues", evals
-print "Eigenvectors", evecs
-print "first Eigenvector..."
-print evecs[0]
+#print "Eigenvalues", evals
+#print "Eigenvectors", evecs
+#print "first Eigenvector..."
+#print evecs[0]
 
 pl.title("DoS by TightBinding")
 pl.subplot(211) #5 subplots stacked on top of one another
