@@ -1,4 +1,6 @@
-# DoS_by_TB.py - generate DoS from CG Js read in from file
+# DBTW.py - generate DoS from CG Js read in from file
+
+# Down by the water // My lovely daughter // I took her home
 
 # Import our numeric library
 import numpy as np
@@ -15,14 +17,13 @@ try:
 except ImportError: #If no brewer2mpl library
     #Otherwise, boring built in ones...
     colours='brgcmkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkk' # Aaah, we fade to grey (fade to grey)
-    print "Hey - no brew2mpl. Thus a simple palette."
+    print "Hey - no brewer2mpl (try 'pip install brewer2mpl'). Thus a simple palette."
 
 # Matplotlib - initialise figure
 fig=pl.figure()
-pl.axes().set_aspect('equal')
+pl.axes().set_aspect('equal') # Square data .'. square figure please
 
-
-n=10
+n=1000
 
 # Initialise our Hamiltonian matrix
 H = np.zeros ( (n,n) )
