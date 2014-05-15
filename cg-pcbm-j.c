@@ -10,7 +10,7 @@
 // segfault!
 #define MAXPOINTS 100000
 
-main()
+int main()
 {
     double coords[MAXPOINTS][3];
     double d,mind,r[3];
