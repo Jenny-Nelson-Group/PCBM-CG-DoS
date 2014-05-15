@@ -5,7 +5,10 @@
 
 # Import our numeric library
 import numpy as np
+# Matplotlib
 import matplotlib.pyplot as pl
+# Sys for arg passing
+import sys
 
 import datetime # current date for log files etc.
 
@@ -27,14 +30,19 @@ except ImportError: #If no brewer2mpl library
 fig=pl.figure()
 pl.axes().set_aspect('equal') # Square data .'. square figure please
 
-n=1000
+# Setup size of system to study...
+if len(sys.argv) > 1: n = int(sys.argv[1])
+else: n=10
 
 # Initialise our Hamiltonian matrix
 H = np.zeros ( (n,n) )
 
+if len(sys.argv) > 2: edgesfile = sys.argv[2]
+else: edgesfile="test.edges"
+
 # Load off-diagonal elements from text file. Format:-
 #  (index_i,int) (index_j,int) (value,double)
-filein=np.loadtxt("test.edges",
+filein=np.loadtxt(edgesfile,
         dtype=([('f1', '<u4'), ('f2', '<u4'), ('f3',np.float64)]) ) #specify datatypes: 4byte int, 4byte int, float64
 
 for datum in filein:
