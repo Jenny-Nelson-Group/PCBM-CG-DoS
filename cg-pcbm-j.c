@@ -16,6 +16,9 @@ int main()
     double d,mind,r[3];
     int n,i,j;
 
+    double lambda=0.6;     // DRAGONS!
+    double prefactor=10.0; //check this!
+
     scanf("%d %lf",&n,&mind); // First line of STDIN is 'number of points' 'min distance to consider'
     
     if (n>MAXPOINTS)
@@ -29,10 +32,10 @@ int main()
             if (j!=i) // no infinities if self
             {
                 r[0]=coords[i][0]-coords[j][0]; r[1]=coords[i][1]-coords[j][1]; r[2]=coords[i][2]-coords[j][2];
-                d= r[0]*r[0] + r[1]*r[1] + r[2]*r[2];
+                d= sqrt(r[0]*r[0] + r[1]*r[1] + r[2]*r[2]);
 //                printf("%d %d \t%f %f %f\t%f\n",i,j,coords[i][0],coords[i][1],coords[i][2],d);
-                if (d<=mind*mind)
-                    printf("%d\t%d\t%lf\n",i,j,exp(-sqrt(d)*0.4)); //increasing factor makes J tail off 'sharper'
+                if (d<=mind)
+                    printf("%d\t%d\t%lf\n",i,j,prefactor*exp(-d*lambda)); //increasing factor makes J tail off 'sharper'
             }
 
 }
