@@ -69,6 +69,8 @@ evals,evecs=np.linalg.eigh(H)
 #print "first Eigenvector..."
 #print evecs[0]
 
+fig=pl.figure()
+
 pl.title("DoS by TightBinding")
 pl.subplot(211) #5 subplots stacked on top of one another
 
