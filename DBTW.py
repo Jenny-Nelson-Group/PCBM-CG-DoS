@@ -12,7 +12,7 @@ import sys
 
 import datetime # current date for log files etc.
 
-from IPython import embed# we do this so we can drop to interactive python for debugging; major Python coolio
+# from IPython import embed# we do this so we can drop to interactive python for debugging; major Python coolio
  #  # --> embed() <-- just add this to any point in code, and TADA!
 
 ### Matplotlib setup
@@ -77,7 +77,7 @@ pl.subplot(211) #5 subplots stacked on top of one another
 #Plot Eigenvalues with filled-in Eigenvectors^2 / electron probabilities
 pl.subplot(211)
 for j in range(0,5): #Number of eigenvalues plotted (electron wavefns)
-    pl.fill_between(range(n),evals[j],evals[j]+evecs[j]*evecs[j], facecolor=colours[j])
+    pl.fill_between(range(n),evals[j],evals[j]+evecs[:,j]*evecs[:,j], facecolor=colours[j])
 pl.ylabel("Occ %")
 #pl.ylim((3.8,5.0))
 pl.yticks(fontsize=9)
