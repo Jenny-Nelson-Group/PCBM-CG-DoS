@@ -72,19 +72,38 @@ evals,evecs=np.linalg.eigh(H)
 fig=pl.figure()
 
 pl.title("DoS by TightBinding")
-pl.subplot(211) #5 subplots stacked on top of one another
+pl.subplot(311) #3 subplots stacked on top of one another
 
 #Plot Eigenvalues with filled-in Eigenvectors^2 / electron probabilities
-pl.subplot(211)
-for j in range(0,5): #Number of eigenvalues plotted (electron wavefns)
-    pl.fill_between(range(n),evals[j],evals[j]+evecs[:,j]*evecs[:,j], facecolor=colours[j])
-pl.ylabel("Occ %")
+pl.subplot(311)
+for j in [0,n/2]: #range(0,5): #Number of eigenvalues plotted (electron wavefns)
+    psi=evecs[:,j]*evecs[:,j]
+    pl.fill_between(range(n),0,psi, facecolor=colours[j%8])
+pl.ylabel("Occupation")
+#pl.ylim((3.8,5.0))
+pl.yticks(fontsize=9)
+pl.xticks(visible=False)
+
+#Plot cumulative eigenvectors / probability density
+pl.subplot(312)
+for j in [0,1,2,n/4, n/2]: #range(0,5): #Number of eigenvalues plotted (electron wavefns)
+    psi=evecs[:,j]*evecs[:,j]    # expectation value
+    pl.fill_between(range(n),0,sorted(psi,reverse=True), facecolor=colours[j%8]) #can't see this anymore on large plots...
+    psi=sorted(psi,reverse=True) # expectation value, ranked in order (largest first)
+    
+    psi_sum=[0.0]
+    for i in range(len(psi)): # should be a nicer way to do this with functional programming!
+        psi_sum.append(psi_sum[-1]+psi[i])
+    
+    pl.plot(psi_sum, color=colours[j%8])
+    pl.plot(y=0.95) # 2 sigma confidence interval? # TODO: why doesn't this work?
+pl.ylabel("Cumulative Density")
 #pl.ylim((3.8,5.0))
 pl.yticks(fontsize=9)
 pl.xticks(visible=False)
 
 #Plot DoS
-pl.subplot(212)
+pl.subplot(313)
 pl.hist(evals,100,histtype='stepfilled',color=colours[0])
 pl.ylabel("DoS")
 pl.yticks(fontsize=9)
