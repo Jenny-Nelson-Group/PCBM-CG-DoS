@@ -85,16 +85,25 @@ np.fill_diagonal(H, -6.0)
 print "Hamiltonian fully setup, time to solve!"
 # OK; here we go - let's solve that TB Hamiltonian!
 
-for i in range(50):
+ALPHA = 0.1 # some kind of effective electron phonon coupling / dielectric of medium
+
+siteEs=[]
+polarons=[]
+for i in range(40):
     evals,evecs=np.linalg.eigh(H)
     polaron=evecs[:,0]*evecs[:,0] #lowest energy state electron density
     print polaron
+    polarons.append(polaron)
+    siteEs.append(H.diagonal())
     print H.diagonal()
-    np.fill_diagonal(H,H.diagonal()-0.01*polaron)
-evals,evecs=np.linalg.eigh(H)
+    np.fill_diagonal(H,-6.0-ALPHA*polaron)
 
-pl.plot(H.diagonal())
+fig=pl.figure()
+pl.plot(np.transpose(polarons))
+pl.plot(np.transpose(siteEs)+6.0)
 pl.show()
+
+evals,evecs=np.linalg.eigh(H)
 
 #print "Eigenvalues", evals
 #print "Eigenvectors", evecs
