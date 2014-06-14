@@ -15,6 +15,7 @@ import matplotlib.pyplot as pl
 import sys
 
 import datetime # current date for log files etc.
+now=datetime.datetime.now().strftime("%Y-%m-%d-%Hh%Mm") #String of standardised year-leading time
 
 from IPython import embed# we do this so we can drop to interactive python for debugging; major Python coolio
  #  # --> embed() <-- just add this to any point in code, and TADA!
@@ -79,6 +80,9 @@ pl.imshow(H,interpolation='nearest', cmap=pl.cm.PuBuGn) # 2D colourmap of Hamilt
 pl.colorbar()
 pl.show()
 
+fig.savefig("%s-ITIAM_H.pdf"%now) #Save figures as both PDF and easy viewing PNG (perfect for talks)
+fig.savefig("%s-ITIAM_H.png"%now)
+
 # Fill the diagonal elements with site energy; for tight binding
 np.fill_diagonal(H, -6.0)
 
@@ -89,7 +93,7 @@ ALPHA = 0.1 # some kind of effective electron phonon coupling / dielectric of me
 
 siteEs=[]
 polarons=[]
-for i in range(40):
+for i in range(40): # Number of SCF steps
     evals,evecs=np.linalg.eigh(H)
     polaron=evecs[:,0]*evecs[:,0] #lowest energy state electron density
     print polaron
@@ -99,9 +103,12 @@ for i in range(40):
     np.fill_diagonal(H,-6.0-ALPHA*polaron)
 
 fig=pl.figure()
-pl.plot(np.transpose(polarons))
+pl.plot(np.transpose(polarons)) #transposes appended lists so that data is plotted as fn of site
 pl.plot(np.transpose(siteEs)+6.0)
 pl.show()
+
+fig.savefig("%s-ITIAM_SCF.pdf"%now) #Save figures as both PDF and easy viewing PNG (perfect for talks)
+fig.savefig("%s-ITIAM_SCF.png"%now)
 
 evals,evecs=np.linalg.eigh(H)
 
@@ -156,10 +163,9 @@ pl.show() #Displays plots!
 print "Lowest Eigenvalue:\n", evals[0]
 
 print "Saving figures...(one moment please)"
-now=datetime.datetime.now().strftime("%Y-%m-%d-%Hh%Mm") #String of standardised year-leading time
 pl.annotate("%s"%now,xy=(0.75,0.02),xycoords='figure fraction') #Date Stamp in corner
 
-fig.savefig("%s-DBTW.pdf"%now) #Save figures as both PDF and easy viewing PNG (perfect for talks)
-fig.savefig("%s-DBTW.png"%now)
+fig.savefig("%s-ITIAM_3fig.pdf"%now) #Save figures as both PDF and easy viewing PNG (perfect for talks)
+fig.savefig("%s-ITIAM_3fig.png"%now)
 #fig.savefig("%s-LongSnakeMoan.ps"%now)    # TODO: check with latest python scripts to see best way to export these for future inclusion in Latex etc.
 
