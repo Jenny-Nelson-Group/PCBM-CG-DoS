@@ -44,8 +44,8 @@ H = np.zeros ( (n,n) )
 if len(sys.argv) > 2: coordfile = sys.argv[2]
 else: coordfile="test.xyz"
 
-cell=[106.287,106.287,106.287] # Hard coded cell dimensions!!! FIXME
-#cell=[10,10,10]
+#cell=[106.287,106.287,106.287] # Hard coded cell dimensions!!! FIXME
+cell=[100,100,100]
 
 # Load C60 locations from coordinate file. Format:-
 #  X Y Z
@@ -72,7 +72,7 @@ H=J0*np.exp(-LAMBDA*H)
 
 print "Generated Hamiltonian... "
 
-np.fill_diagonal(H, 0.0) #set diagonal elements to zero
+np.fill_diagonal(H, 0.0) #set diagonal elements to zero; so we can always see the off-digaonal elements
 
 pl.title("Off-diagonal elements of Hamiltonian")
 pl.imshow(H,interpolation='nearest', cmap=pl.cm.PuBuGn) # 2D colourmap of Hamiltonian, nearest interpolation.
