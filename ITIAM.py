@@ -84,7 +84,17 @@ np.fill_diagonal(H, -6.0)
 
 print "Hamiltonian fully setup, time to solve!"
 # OK; here we go - let's solve that TB Hamiltonian!
+
+for i in range(50):
+    evals,evecs=np.linalg.eigh(H)
+    polaron=evecs[:,0]*evecs[:,0] #lowest energy state electron density
+    print polaron
+    print H.diagonal()
+    np.fill_diagonal(H,H.diagonal()-0.01*polaron)
 evals,evecs=np.linalg.eigh(H)
+
+pl.plot(H.diagonal())
+pl.show()
 
 #print "Eigenvalues", evals
 #print "Eigenvectors", evecs
