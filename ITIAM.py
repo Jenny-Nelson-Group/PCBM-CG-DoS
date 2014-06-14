@@ -1,10 +1,14 @@
 #!/usr/bin/env python
 
-# DBTW.py - generate DoS from CG Js read in from file
-# Down by the water // My lovely daughter // I took her home
+# ITIAM.py
+# Alone, I emplore ya
+# I think I'm a mother
+ 
+print("ITIAM.jl - DoS by TB with Polaron self-interaction")
 
 # Import our numeric library
 import numpy as np
+import scipy.spatial.distance as distance
 # Matplotlib
 import matplotlib.pyplot as pl
 # Sys for arg passing
@@ -12,7 +16,7 @@ import sys
 
 import datetime # current date for log files etc.
 
-# from IPython import embed# we do this so we can drop to interactive python for debugging; major Python coolio
+from IPython import embed# we do this so we can drop to interactive python for debugging; major Python coolio
  #  # --> embed() <-- just add this to any point in code, and TADA!
 
 ### Matplotlib setup
@@ -37,20 +41,38 @@ else: n=10
 # Initialise our Hamiltonian matrix
 H = np.zeros ( (n,n) )
 
-if len(sys.argv) > 2: edgesfile = sys.argv[2]
-else: edgesfile="test.edges"
+if len(sys.argv) > 2: coordfile = sys.argv[2]
+else: coordfile="test.xyz"
 
-# Load off-diagonal elements from text file. Format:-
-#  (index_i,int) (index_j,int) (value,double)
-filein=np.loadtxt(edgesfile,
-        dtype=([('f1', '<u4'), ('f2', '<u4'), ('f3',np.float64)]) ) #specify datatypes: 4byte int, 4byte int, float64
+cell=[106.287,106.287,106.287] # Hard coded cell dimensions!!! FIXME
+#cell=[10,10,10]
 
-for datum in filein:
-#    print datum
-    H[datum[0],datum[1]]=datum[2] # Populate Hamiltonian with off diagonal elements
-    H[datum[1],datum[0]]=datum[2]  # Hermition...
+# Load C60 locations from coordinate file. Format:-
+#  X Y Z
+#  Assuming angstroms.
+locations=np.loadtxt(coordfile)
 
-print "Loaded Hamiltonian... "
+locations=locations/cell # transpose to fractional coordinates
+
+distancematrix=locations[:,None,...]-locations[None,...] 
+# Calculate distance matrix with Numpy functional programming methods. Probably v. memory heavy.
+
+PBCS=True
+if (PBCS==True):
+    distancematrix[distancematrix<0.5]+=1.0 #minimum image convention
+    distancematrix[distancematrix>0.5]-=1.0 #minimum image convention
+
+distancematrix*=cell # back to real coordinates
+
+H=np.linalg.norm(distancematrix,axis=2) # distances via linalg norm command on suitables axes
+
+J0=10
+LAMBDA=0.6
+H=J0*np.exp(-LAMBDA*H)
+
+print "Generated Hamiltonian... "
+
+np.fill_diagonal(H, 0.0) #set diagonal elements to zero
 
 pl.title("Off-diagonal elements of Hamiltonian")
 pl.imshow(H,interpolation='nearest', cmap=pl.cm.PuBuGn) # 2D colourmap of Hamiltonian, nearest interpolation.
