@@ -36,40 +36,48 @@ fig=pl.figure()
 pl.axes().set_aspect('equal') # Square data .'. square figure please
 
 # Setup size of system to study...
+# if present, read in number of sites from argument {1}
+#  TODO: probably redundant as we can count number of lines in XYZ ?
 if len(sys.argv) > 1: n = int(sys.argv[1])
 else: n=10
 
 # Initialise our Hamiltonian matrix
 H = np.zeros ( (n,n) )
 
+# if present, read in coordinate filename from argument {2}
 if len(sys.argv) > 2: coordfile = sys.argv[2]
 else: coordfile="test.xyz"
 
+# if present, read in cell coordinates from arguments {3,4,5}
+if len(sys.argv) > 3: cell=[float(sys.argv[3]),float(sys.argv[4]),float(sys.argv[5])]
+else: cell=[100,100,100]
 #cell=[106.287,106.287,106.287] # Hard coded cell dimensions!!! FIXME
-cell=[100,100,100]
+print("Cell dimensions: ",cell)
 
 # Load C60 locations from coordinate file. Format:-
 #  X Y Z
 #  Assuming angstroms.
-locations=np.loadtxt(coordfile)
+locations=np.loadtxt(coordfile) #this defaults to reading them in as floats, which should be fine
 
-locations=locations/cell # transpose to fractional coordinates
+locations=locations/cell # scale to fractional coordinates
 
-distancematrix=locations[:,None,...]-locations[None,...] 
-# Calculate distance matrix with Numpy functional programming methods. Probably v. memory heavy.
+distancematrix=locations[:,None,...]-locations[None,...] # rolled over 
+# Calculate distance matrix with Numpy functional programming methods. 
+#  Probably v. memory heavy.
 
 PBCS=True
 if (PBCS==True):
     distancematrix[distancematrix<0.5]+=1.0 #minimum image convention
     distancematrix[distancematrix>0.5]-=1.0 #minimum image convention
 
-distancematrix*=cell # back to real coordinates
+distancematrix*=cell # scale back to real coordinates
 
 H=np.linalg.norm(distancematrix,axis=2) # distances via linalg norm command on suitables axes
+# elements in H are now euler distances between those sites {i,j}
 
 J0=10
 LAMBDA=0.6
-H=J0*np.exp(-LAMBDA*H)
+H=J0*np.exp(-LAMBDA*H) # calculate transfer integrals with isotropic exponential form
 
 print "Generated Hamiltonian... "
 
@@ -90,10 +98,11 @@ print "Hamiltonian fully setup, time to solve!"
 # OK; here we go - let's solve that TB Hamiltonian!
 
 ALPHA = 0.1 # some kind of effective electron phonon coupling / dielectric of medium
+SCFSTEPS = 10 
 
 siteEs=[]
 polarons=[]
-for i in range(40): # Number of SCF steps
+for i in range(SCFSTEPS): # Number of SCF steps
     evals,evecs=np.linalg.eigh(H)
     polaron=evecs[:,0]*evecs[:,0] #lowest energy state electron density
     print polaron
@@ -105,12 +114,13 @@ for i in range(40): # Number of SCF steps
 fig=pl.figure()
 pl.plot(np.transpose(polarons)) #transposes appended lists so that data is plotted as fn of site
 pl.plot(np.transpose(siteEs)+6.0)
+pl.legend(range(len(polarons))+range(len(siteEs)))
 pl.show()
 
 fig.savefig("%s-ITIAM_SCF.pdf"%now) #Save figures as both PDF and easy viewing PNG (perfect for talks)
 fig.savefig("%s-ITIAM_SCF.png"%now)
 
-evals,evecs=np.linalg.eigh(H)
+evals,evecs=np.linalg.eigh(H) # solve final form of Hamiltonian (always computes here even if no SCF steps)
 
 #print "Eigenvalues", evals
 #print "Eigenvectors", evecs
