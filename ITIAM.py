@@ -98,7 +98,7 @@ print "Hamiltonian fully setup, time to solve!"
 # OK; here we go - let's solve that TB Hamiltonian!
 
 ALPHA = 0.1 # some kind of effective electron phonon coupling / dielectric of medium
-SCFSTEPS = 10 
+SCFSTEPS = 100 
 
 siteEs=[]
 polarons=[]
