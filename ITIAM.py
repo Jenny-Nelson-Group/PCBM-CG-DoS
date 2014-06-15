@@ -97,8 +97,8 @@ np.fill_diagonal(H, -6.0)
 print "Hamiltonian fully setup, time to solve!"
 # OK; here we go - let's solve that TB Hamiltonian!
 
-ALPHA = 0.1 # some kind of effective electron phonon coupling / dielectric of medium
-SCFSTEPS = 100 
+ALPHA = 0.5 # some kind of effective electron phonon coupling / dielectric of medium
+SCFSTEPS = 20 
 
 siteEs=[]
 polarons=[]
