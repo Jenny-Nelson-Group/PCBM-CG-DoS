@@ -4,11 +4,11 @@
 # Alone, I emplore ya
 # I think I'm a mother
  
-print("ITIAM.jl - DoS by TB with Polaron self-interaction")
+print("ITIAM.py - DoS by TB with Polaron self-interaction")
+print("call as: #ITIAM.py (sites) (file.xyz) (CellA) (CellB) (CellC)")
 
 # Import our numeric library
 import numpy as np
-import scipy.spatial.distance as distance
 # Matplotlib
 import matplotlib.pyplot as pl
 # Sys for arg passing
@@ -97,7 +97,7 @@ np.fill_diagonal(H, -6.0)
 print "Hamiltonian fully setup, time to solve!"
 # OK; here we go - let's solve that TB Hamiltonian!
 
-ALPHA = 0.5 # some kind of effective electron phonon coupling / dielectric of medium
+ALPHA = 0.1 # some kind of effective electron phonon coupling / dielectric of medium
 SCFSTEPS = 20 
 
 siteEs=[]
