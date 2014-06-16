@@ -65,7 +65,7 @@ distancematrix=locations[:,None,...]-locations[None,...] # rolled over
 # Calculate distance matrix with Numpy functional programming methods. 
 #  Probably v. memory heavy.
 
-PBCS=True
+PBCS=False
 if (PBCS==True):
     distancematrix[distancematrix<0.5]+=1.0 #minimum image convention
     distancematrix[distancematrix>0.5]-=1.0 #minimum image convention
@@ -98,8 +98,8 @@ np.fill_diagonal(H, -6.0)
 print "Hamiltonian fully setup, time to solve!"
 # OK; here we go - let's solve that TB Hamiltonian!
 
-ALPHA = 0.1 # some kind of effective electron phonon coupling / dielectric of medium
-SCFSTEPS = 0 
+ALPHA = 0.2 # some kind of effective electron phonon coupling / dielectric of medium
+SCFSTEPS = 100 
 
 siteEs=[]
 polarons=[]
@@ -195,15 +195,16 @@ for ei,colour in zip( [0,n/200,n/100,n/20] , [(0,0,1),(0,1,1),(1,1,0),(1,0,0)]):
     for i in reversed(np.argsort(psi)): #magic list of sorted array indices
 #       print locations[i]
 #       print psi[i]
-        psisum+=psi[i]
-        if (psisum>0.90): #only if this amount of electron density or above
-            print "Eigvec: %d .95 density at %d" %(ei,i)
-            break 
         weight=float(psi[i])/maxpsi #on interval [0,1]
         fp.write("ALPHA, %f,\n" %(weight))
         weight=1
         fp.write("COLOR, %f, %f, %f,\n" %(colour[0]*weight , colour[1]*weight, colour[2]*weight))
         fp.write("SPHERE, %f, %f, %f, 5.0,\n" %(locations[i][0],locations[i][1],locations[i][2]))
-
+ 
+        psisum+=psi[i]
+        if (psisum>0.90): #only if this amount of electron density or above
+            print "Eigvec: %d .95 density at %d" %(ei,i)
+            break 
+ 
     fp.write(" END \n]\ncmd.load_cgo(obj,'EV_%d') \n" %(ei))
 
