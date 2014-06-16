@@ -1,0 +1,5 @@
+set bg_rgb,white
+run eigenvector_balls_pymol.py
+
+set grid_mode, 1
+clip slab, 10000
