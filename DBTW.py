@@ -91,14 +91,14 @@ for i in range(0,1000):
 
     for j in range(0,n):
         prob[j]=evecs[j,i]*evecs[j,i]
-        centre_coords[0]+=filein_pos[j]['f6']*prob[j]
-        centre_coords[1]+=filein_pos[j]['f7']*prob[j]
-        centre_coords[2]+=filein_pos[j]['f8']*prob[j]
+        centre_coords[0]+=filein_pos[j][1]*prob[j]
+        centre_coords[1]+=filein_pos[j][2]*prob[j]
+        centre_coords[2]+=filein_pos[j][3]*prob[j]
 #    print centre_coords
 
 
     for j in range(0,n):
-        r[j]=np.sqrt((centre_coords[0]-filein_pos[j]['f6'])*(centre_coords[0]-filein_pos[j]['f6'])+(centre_coords[1]-filein_pos[j]['f7'])*(centre_coords[1]-filein_pos[j]['f7'])+(centre_coords[2]-filein_pos[j]['f8'])*(centre_coords[2]-filein_pos[j]['f8']))
+        r[j]=np.sqrt((centre_coords[0]-filein_pos[j][1])*(centre_coords[0]-filein_pos[j][1])+(centre_coords[1]-filein_pos[j][2])*(centre_coords[1]-filein_pos[j][2])+(centre_coords[2]-filein_pos[j][3])*(centre_coords[2]-filein_pos[j][3]))
 #    print r
 
 
@@ -122,24 +122,18 @@ for i in range(0,1000):
 #    print "Effective size of polaron is: ", polaron_size[i]
 
 
-
-
-
-
-
 #Calculating electron probabilities
-#prob = np.zeros(n)
-#max_coords = np.zeros(3)
-#r=np.zeros(1000)
+max_coords = np.zeros(3)
+r=np.zeros(1000)
 
-#for k in range(0,1000):
-#Finding position of site with maxiumum probability
-#   for i in range(0,n):
-#       prob[i]=evecs[i,k]*evecs[i,k]
-#   max_index=np.argmax(prob)
-#   max_coords[0]=filein_pos[max_index]['f6']
-#   max_coords[1]=filein_pos[max_index]['f7']
-#   max_coords[2]=filein_pos[max_index]['f8']
+for k in range(0,1000):
+    #Finding position of site with maxiumum probability
+    for i in range(0,n):
+        prob[i]=evecs[i,k]*evecs[i,k]
+    max_index=np.argmax(prob)
+    max_coords[0]=filein_pos[max_index][1]
+    max_coords[1]=filein_pos[max_index][2]
+    max_coords[2]=filein_pos[max_index][3]
 
 #print "Prob=", prob[0]
 #print "Max index=", max_index
@@ -147,8 +141,8 @@ for i in range(0,1000):
 
 
 #Calculating an effective radius of the polaron by adding up weighted radii from centre found above
-#    for j in range(0,n):
-#       r[k]+=np.sqrt((max_coords[0]-filein_pos[j]['f6'])*(max_coords[0]-filein_pos[j]['f6'])+(max_coords[1]-filein_pos[j]['f7'])*(max_coords[1]-filein_pos[j]['f7'])+(max_coords[2]-filein_pos[j]['f8'])*(max_coords[2]-filein_pos[j]['f8']))*prob[j]
+    for j in range(0,n):
+        r[k]+=np.sqrt((max_coords[0]-filein_pos[j][1])*(max_coords[0]-filein_pos[j][1])+(max_coords[1]-filein_pos[j][2])*(max_coords[1]-filein_pos[j][2])+(max_coords[2]-filein_pos[j][3])*(max_coords[2]-filein_pos[j][3]))*prob[j]
 #print r
 
 #write eigenvalue vs size of polaron to files
@@ -162,11 +156,13 @@ for i in range(0,1000):
 
 #Plot polaron size vs eigenvalue
 
-fig1=pl.figure()
+fig, ax=pl.subplots()
+rects1 = pl.bar(evals[0:10],polaron_size[0:10],0.0001, color='r')
+rects2 = pl.bar(evals[0:10]+0.0001,r[0:10],0.0001, color='b')
 pl.title("Size of polaron vs eigenvalue")
-pl.bar(evals[0:100],polaron_size[0:100],0.000001)
 pl.xlabel("Eigenvalues")
 pl.ylabel("Effective size of polaron")
+pl.tight_layout()
 pl.show()
 
 #print "Eigenvalues", evals
