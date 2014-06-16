@@ -101,21 +101,19 @@ for i in range(0,1000):
         r[j]=np.sqrt((centre_coords[0]-filein_pos[j][1])*(centre_coords[0]-filein_pos[j][1])+(centre_coords[1]-filein_pos[j][2])*(centre_coords[1]-filein_pos[j][2])+(centre_coords[2]-filein_pos[j][3])*(centre_coords[2]-filein_pos[j][3]))
 #    print r
 
+    idx = np.argsort(r)
+    sorted_r = r[idx]
+    sorted_charge = prob[idx]
+#    print sorted_r
+#    print sorted_charge
 
-    for j in range (0,n):
-        distance_charge[j,0]=r[j]
-        distance_charge[j,1]=prob[j]
-
-    sorted_distance_charge=np.sort(distance_charge, axis=0)
-#    print sorted_distance_charge
-    
-    for j in range (0,n):
-        sorted_charge[j]=sorted_distance_charge[j,1]
     cum_prob = np.cumsum(sorted_charge)
 #    print cum_prob
 
     for j in range (0,n):
-       if cum_prob[j]>0.95:polaron_size[i]=sorted_distance_charge[j,0]
+       if cum_prob[j]>0.95:break
+
+    polaron_size[i] = sorted_r[j]
 
     centre_coords = np.zeros(3)     # Reset centre_coords
 
@@ -126,7 +124,7 @@ for i in range(0,1000):
 max_coords = np.zeros(3)
 r=np.zeros(1000)
 
-for k in range(0,1000):
+for k in range(0,10):
     #Finding position of site with maxiumum probability
     for i in range(0,n):
         prob[i]=evecs[i,k]*evecs[i,k]
@@ -143,6 +141,7 @@ for k in range(0,1000):
 #Calculating an effective radius of the polaron by adding up weighted radii from centre found above
     for j in range(0,n):
         r[k]+=np.sqrt((max_coords[0]-filein_pos[j][1])*(max_coords[0]-filein_pos[j][1])+(max_coords[1]-filein_pos[j][2])*(max_coords[1]-filein_pos[j][2])+(max_coords[2]-filein_pos[j][3])*(max_coords[2]-filein_pos[j][3]))*prob[j]
+
 #print r
 
 #write eigenvalue vs size of polaron to files
@@ -157,13 +156,15 @@ for k in range(0,1000):
 #Plot polaron size vs eigenvalue
 
 fig, ax=pl.subplots()
-rects1 = pl.bar(evals[0:10],polaron_size[0:10],0.0001, color='r')
-rects2 = pl.bar(evals[0:10]+0.0001,r[0:10],0.0001, color='b')
+rects1 = pl.bar(evals[0:50],polaron_size[0:50],0.0001, color='r')
+#rects2 = pl.bar(evals[0:50]+0.0001,r[0:50],0.0001, color='b')
 pl.title("Size of polaron vs eigenvalue")
 pl.xlabel("Eigenvalues")
 pl.ylabel("Effective size of polaron")
 pl.tight_layout()
 pl.show()
+
+
 
 #print "Eigenvalues", evals
 #print "Eigenvectors", evecs
