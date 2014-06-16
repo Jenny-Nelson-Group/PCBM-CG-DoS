@@ -40,15 +40,22 @@ H = np.zeros ( (n,n) )
 if len(sys.argv) > 2: edgesfile = sys.argv[2]
 else: edgesfile="test.edges"
 
-# Load off-diagonal elements from text file. Format:-
-#  (index_i,int) (index_j,int) (value,double)
-filein=np.loadtxt(edgesfile,
-        dtype=([('f1', '<u4'), ('f2', '<u4'), ('f3',np.float64)]) ) #specify datatypes: 4byte int, 4byte int, float64
+positionsfile = sys.argv[3]
 
-for datum in filein:
-#    print datum
+# Load off-diagonal elements from text file. Format:-
+#  (index_i,int) (index_j,int) (value,double) (value,double)
+filein_edge=np.loadtxt(edgesfile,
+                  dtype=[('f1', '<u4'), ('f2', '<u4'), ('f3',np.float64),('f4',np.float64)])  #specify datatypes: 4byte int, 4byte int, float64, float64
+
+filein_pos=np.loadtxt(positionsfile,
+                      dtype=[('f5', '<u4'),('f6',np.float64),('f7',np.float64),('f8',np.float64)])
+
+
+for datum in filein_edge:
+    #print datum
     H[datum[0],datum[1]]=datum[2] # Populate Hamiltonian with off diagonal elements
-    H[datum[1],datum[0]]=datum[2]  # Hermition...
+    H[datum[1],datum[0]]=datum[2]  #  Hermition...
+
 
 print "Loaded Hamiltonian... "
 
@@ -58,18 +65,116 @@ pl.colorbar()
 pl.show()
 
 # Fill the diagonal elements with site energy; for tight binding
-np.fill_diagonal(H, -6.0)
+#np.fill_diagonal(H, -6.0)
+
+for datum in filein_edge:
+    for j in range(0,n):
+        H[j,j]=datum[3]
+
 
 print "Hamiltonian fully setup, time to solve!"
 # OK; here we go - let's solve that TB Hamiltonian!
 evals,evecs=np.linalg.eigh(H)
+
+
+#Calculating centre of electrostatic density
+
+centre_coords = np.zeros(3)
+prob = np.zeros(n)
+r=np.zeros(n)
+distance_charge=np.zeros((n,2))
+cum_prob=np.zeros(n)
+sorted_charge=np.zeros(n)
+polaron_size=np.zeros(n)
+
+for i in range(0,1000):
+
+    for j in range(0,n):
+        prob[j]=evecs[j,i]*evecs[j,i]
+        centre_coords[0]+=filein_pos[j]['f6']*prob[j]
+        centre_coords[1]+=filein_pos[j]['f7']*prob[j]
+        centre_coords[2]+=filein_pos[j]['f8']*prob[j]
+#    print centre_coords
+
+
+    for j in range(0,n):
+        r[j]=np.sqrt((centre_coords[0]-filein_pos[j]['f6'])*(centre_coords[0]-filein_pos[j]['f6'])+(centre_coords[1]-filein_pos[j]['f7'])*(centre_coords[1]-filein_pos[j]['f7'])+(centre_coords[2]-filein_pos[j]['f8'])*(centre_coords[2]-filein_pos[j]['f8']))
+#    print r
+
+
+    for j in range (0,n):
+        distance_charge[j,0]=r[j]
+        distance_charge[j,1]=prob[j]
+
+    sorted_distance_charge=np.sort(distance_charge, axis=0)
+#    print sorted_distance_charge
+    
+    for j in range (0,n):
+        sorted_charge[j]=sorted_distance_charge[j,1]
+    cum_prob = np.cumsum(sorted_charge)
+#    print cum_prob
+
+    for j in range (0,n):
+       if cum_prob[j]>0.95:polaron_size[i]=sorted_distance_charge[j,0]
+
+    centre_coords = np.zeros(3)     # Reset centre_coords
+
+#    print "Effective size of polaron is: ", polaron_size[i]
+
+
+
+
+
+
+
+#Calculating electron probabilities
+#prob = np.zeros(n)
+#max_coords = np.zeros(3)
+#r=np.zeros(1000)
+
+#for k in range(0,1000):
+#Finding position of site with maxiumum probability
+#   for i in range(0,n):
+#       prob[i]=evecs[i,k]*evecs[i,k]
+#   max_index=np.argmax(prob)
+#   max_coords[0]=filein_pos[max_index]['f6']
+#   max_coords[1]=filein_pos[max_index]['f7']
+#   max_coords[2]=filein_pos[max_index]['f8']
+
+#print "Prob=", prob[0]
+#print "Max index=", max_index
+#print "Max coordinates", max_coords
+
+
+#Calculating an effective radius of the polaron by adding up weighted radii from centre found above
+#    for j in range(0,n):
+#       r[k]+=np.sqrt((max_coords[0]-filein_pos[j]['f6'])*(max_coords[0]-filein_pos[j]['f6'])+(max_coords[1]-filein_pos[j]['f7'])*(max_coords[1]-filein_pos[j]['f7'])+(max_coords[2]-filein_pos[j]['f8'])*(max_coords[2]-filein_pos[j]['f8']))*prob[j]
+#print r
+
+#write eigenvalue vs size of polaron to files
+
+#polaron_evals=np.zeros((n,2))
+#for i in range (0,n):
+#   polaron_evals[i,0]=evals[i]
+#   polaron_evals[i,1]=r[i]
+
+#np.savetxt("Polaron_vs_evals.dat",polaron_evals,delimiter=' ',newline='\n')
+
+#Plot polaron size vs eigenvalue
+
+fig1=pl.figure()
+pl.title("Size of polaron vs eigenvalue")
+pl.bar(evals[0:100],polaron_size[0:100],0.000001)
+pl.xlabel("Eigenvalues")
+pl.ylabel("Effective size of polaron")
+pl.show()
 
 #print "Eigenvalues", evals
 #print "Eigenvectors", evecs
 #print "first Eigenvector..."
 #print evecs[0]
 
-fig=pl.figure()
+fig2=pl.figure()
 
 pl.title("DoS by TightBinding")
 pl.subplot(311) #3 subplots stacked on top of one another
@@ -105,6 +210,7 @@ pl.xticks(visible=False)
 #Plot DoS
 pl.subplot(313)
 pl.hist(evals,100,histtype='stepfilled',color=colours[0])
+#pl.ylim(0,80)
 pl.ylabel("DoS")
 pl.yticks(fontsize=9)
 
@@ -114,11 +220,17 @@ pl.show() #Displays plots!
 
 print "Lowest Eigenvalue:\n", evals[0]
 
+#print r
+
+#print "Effective size of polaron is from", np.min(r)
+#print "to", np.max(r)
+
 print "Saving figures...(one moment please)"
 now=datetime.datetime.now().strftime("%Y-%m-%d-%Hh%Mm") #String of standardised year-leading time
 pl.annotate("%s"%now,xy=(0.75,0.02),xycoords='figure fraction') #Date Stamp in corner
 
-fig.savefig("%s-DBTW.pdf"%now) #Save figures as both PDF and easy viewing PNG (perfect for talks)
-fig.savefig("%s-DBTW.png"%now)
+#fig1.savefig("%s-polaron.pdf"%now)
+#fig2.savefig("%s-DBTW.pdf"%now) #Save figures as both PDF and easy viewing PNG (perfect for talks)
+#fig.savefig("%s-DBTW.png"%now)
 #fig.savefig("%s-LongSnakeMoan.ps"%now)    # TODO: check with latest python scripts to see best way to export these for future inclusion in Latex etc.
 
