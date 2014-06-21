@@ -99,7 +99,7 @@ print "Hamiltonian fully setup, time to solve!"
 # OK; here we go - let's solve that TB Hamiltonian!
 
 ALPHA = 0.2 # some kind of effective electron phonon coupling / dielectric of medium
-SCFSTEPS = 100 
+SCFSTEPS = 0 
 
 siteEs=[]
 polarons=[]
@@ -122,6 +122,39 @@ fig.savefig("%s-ITIAM_SCF.pdf"%now) #Save figures as both PDF and easy viewing P
 #fig.savefig("%s-ITIAM_SCF.png"%now)
 
 evals,evecs=np.linalg.eigh(H) # solve final form of Hamiltonian (always computes here even if no SCF steps)
+
+# TODO: calculate Js from polaron ensemble orbitals
+
+# FIXME: Probably doesn't calculate anything other than spurious numbers
+
+psi0 = np.zeros ( (n,1) )
+psi1 = np.zeros ( (1,n) )
+
+#print psi0, psi1
+
+polarons=[]
+overlaps=[]
+for polaron in range(1000): #[1,2,3,500]:
+    psi1=evecs[:,polaron].reshape((1,n))
+    psi0=evecs[:,0].transpose().reshape((n,1))
+
+    #print "psi0= ",psi0
+    #print "psi1= ",psi1
+    #print "H*psi0= ",(H*psi0)
+    #print "Inner psi1, H*psi0= ",np.inner(psi1,H*psi0)
+    J=np.inner(psi1,H*psi0).trace()
+    print polaron,J
+    overlaps.append(J)
+    polarons.append(polaron)
+
+print overlaps
+
+fig=pl.figure()
+pl.title("Js by Polaron Orbital Overlap")
+pl.plot(polarons,overlaps)
+pl.show()
+
+# TODO: calculate Js from polaron ensemble orbitals
 
 #print "Eigenvalues", evals
 #print "Eigenvectors", evecs
