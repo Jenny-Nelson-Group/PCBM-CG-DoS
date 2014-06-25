@@ -99,7 +99,7 @@ print "Hamiltonian fully setup, time to solve!"
 # OK; here we go - let's solve that TB Hamiltonian!
 
 ALPHA = 0.2 # some kind of effective electron phonon coupling / dielectric of medium
-SCFSTEPS = 0 
+SCFSTEPS = 5 
 
 siteEs=[]
 polarons=[]
@@ -119,7 +119,7 @@ pl.legend(range(len(polarons))+range(len(siteEs)))
 pl.show()
 
 fig.savefig("%s-ITIAM_SCF.pdf"%now) #Save figures as both PDF and easy viewing PNG (perfect for talks)
-#fig.savefig("%s-ITIAM_SCF.png"%now)
+fig.savefig("%s-ITIAM_SCF.png"%now)
 
 evals,evecs=np.linalg.eigh(H) # solve final form of Hamiltonian (always computes here even if no SCF steps)
 
@@ -127,22 +127,26 @@ evals,evecs=np.linalg.eigh(H) # solve final form of Hamiltonian (always computes
 
 # FIXME: Probably doesn't calculate anything other than spurious numbers
 
-psi0 = np.zeros ( (n,1) )
-psi1 = np.zeros ( (1,n) )
+#psi0 = np.zeros ( (n,1) )
+#psi1 = np.zeros ( (1,n) )
 
 #print psi0, psi1
 
 polarons=[]
 overlaps=[]
-for polaron in range(1000): #[1,2,3,500]:
-    psi1=evecs[:,polaron].reshape((1,n))
-    psi0=evecs[:,0].transpose().reshape((n,1))
+for polaron in [0,1,2,3]: #range(n): #[1,2,3,500]:
+    psi1=evecs[:,polaron].reshape(1,n)
+    psi0=evecs[:,0].transpose().reshape(n,1)
 
-    #print "psi0= ",psi0
-    #print "psi1= ",psi1
+    print "psi0= ",psi0
+    print "psi1= ",psi1
+    print "H= ", H
+    #print "psi0*psi1= ",np.inner(psi0,psi1)
+    #print "psi0.psi0= ",np.dot(psi0,psi0)
+    #print "psi1.psi1= ",np.dot(psi1,psi1)
     #print "H*psi0= ",(H*psi0)
     #print "Inner psi1, H*psi0= ",np.inner(psi1,H*psi0)
-    J=np.inner(psi1,H*psi0).trace()
+    J=np.dot(evecs[:,0],np.inner(H,psi1))
     print polaron,J
     overlaps.append(J)
     polarons.append(polaron)
@@ -153,6 +157,8 @@ fig=pl.figure()
 pl.title("Js by Polaron Orbital Overlap")
 pl.plot(polarons,overlaps)
 pl.show()
+fig.savefig("%s-ITIAM_POO.pdf"%now) #Save figures as both PDF and easy viewing PNG (perfect for talks)
+fig.savefig("%s-ITIAM_POO.png"%now)
 
 # TODO: calculate Js from polaron ensemble orbitals
 
@@ -210,7 +216,7 @@ print "Saving figures...(one moment please)"
 pl.annotate("%s"%now,xy=(0.75,0.02),xycoords='figure fraction') #Date Stamp in corner
 
 fig.savefig("%s-ITIAM_3fig.pdf"%now) #Save figures as both PDF and easy viewing PNG (perfect for talks)
-#fig.savefig("%s-ITIAM_3fig.png"%now)
+fig.savefig("%s-ITIAM_3fig.png"%now)
 #fig.savefig("%s-LongSnakeMoan.ps"%now)    # TODO: check with latest python scripts to see best way to export these for future inclusion in Latex etc.
 
 fp=open('eigenvector_balls_pymol.py','w')
