@@ -98,19 +98,21 @@ np.fill_diagonal(H, -6.0)
 print "Hamiltonian fully setup, time to solve!"
 # OK; here we go - let's solve that TB Hamiltonian!
 
-ALPHA = 0.2 # some kind of effective electron phonon coupling / dielectric of medium
+ALPHA = 0.1 # some kind of effective electron phonon coupling / dielectric of medium
 SCFSTEPS = 5 
+
+Hp=H+0.0 #no copy
 
 siteEs=[]
 polarons=[]
 for i in range(SCFSTEPS): # Number of SCF steps
-    evals,evecs=np.linalg.eigh(H)
+    evals,evecs=np.linalg.eigh(Hp)
     polaron=evecs[:,0]*evecs[:,0] #lowest energy state electron density
     #print polaron
     polarons.append(polaron)
-    siteEs.append(H.diagonal())
+    siteEs.append(Hp.diagonal())
     #print H.diagonal()
-    np.fill_diagonal(H,-6.0-ALPHA*polaron)
+    np.fill_diagonal(Hp,-6.0-ALPHA*polaron)
 
 fig=pl.figure()
 pl.plot(np.transpose(polarons)) #transposes appended lists so that data is plotted as fn of site
@@ -132,24 +134,27 @@ evals,evecs=np.linalg.eigh(H) # solve final form of Hamiltonian (always computes
 
 #print psi0, psi1
 
+pvals,pvecs=np.linalg.eigh(Hp) #polaron eigenvectors / values
+
 polarons=[]
 overlaps=[]
-for polaron in [0,1,2,3]: #range(n): #[1,2,3,500]:
-    psi1=evecs[:,polaron].reshape(1,n)
-    psi0=evecs[:,0].transpose().reshape(n,1)
+for state in range(n): #:[0,1,2,3]: #range(n): #[1,2,3,500]:
+    psi0=evecs[:,state] #.reshape(1,n)
+ 
+    psi1=pvecs[:,0].reshape(1,n)
 
     print "psi0= ",psi0
     print "psi1= ",psi1
-    print "H= ", H
+#    print "H= ", H
     #print "psi0*psi1= ",np.inner(psi0,psi1)
     #print "psi0.psi0= ",np.dot(psi0,psi0)
     #print "psi1.psi1= ",np.dot(psi1,psi1)
     #print "H*psi0= ",(H*psi0)
     #print "Inner psi1, H*psi0= ",np.inner(psi1,H*psi0)
-    J=np.dot(evecs[:,0],np.inner(H,psi1))
-    print polaron,J
+    J=np.dot(psi0,np.inner(H,psi1))
+    print state,J
     overlaps.append(J)
-    polarons.append(polaron)
+    polarons.append(state)
 
 print overlaps
 
