@@ -129,30 +129,19 @@ evals,evecs=np.linalg.eigh(H) # solve final form of Hamiltonian (always computes
 
 # FIXME: Probably doesn't calculate anything other than spurious numbers
 
-#psi0 = np.zeros ( (n,1) )
-#psi1 = np.zeros ( (1,n) )
-
-#print psi0, psi1
-
 pvals,pvecs=np.linalg.eigh(Hp) #polaron eigenvectors / values
 
 polarons=[]
 overlaps=[]
 for state in range(n): #:[0,1,2,3]: #range(n): #[1,2,3,500]:
     psi0=evecs[:,state] #.reshape(1,n)
- 
     psi1=pvecs[:,0].reshape(1,n)
 
-    print "psi0= ",psi0
-    print "psi1= ",psi1
+#    print "psi0= ",psi0
+#    print "psi1= ",psi1
 #    print "H= ", H
-    #print "psi0*psi1= ",np.inner(psi0,psi1)
-    #print "psi0.psi0= ",np.dot(psi0,psi0)
-    #print "psi1.psi1= ",np.dot(psi1,psi1)
-    #print "H*psi0= ",(H*psi0)
-    #print "Inner psi1, H*psi0= ",np.inner(psi1,H*psi0)
     J=np.dot(psi0,np.inner(H,psi1))
-    print state,J
+#    print state,J
     overlaps.append(J)
     polarons.append(state)
 
@@ -179,9 +168,16 @@ pl.subplot(311) #3 subplots stacked on top of one another
 
 #Plot Eigenvalues with filled-in Eigenvectors^2 / electron probabilities
 pl.subplot(311)
+
+#Plot polaron
+psi=pvecs[:,0]*pvecs[:,0]
+pl.fill_between(range(n),0,psi, facecolor='k')
+pl.plot(range(n),pvecs[:,0],color='k')
+
 for j in [0,n/2]: #range(0,5): #Number of eigenvalues plotted (electron wavefns)
     psi=evecs[:,j]*evecs[:,j]
     pl.fill_between(range(n),0,psi, facecolor=colours[j%8])
+    pl.plot(range(n),evecs[:,j],color=colours[j%8])
 pl.ylabel("Occupation")
 #pl.ylim((3.8,5.0))
 pl.yticks(fontsize=9)
@@ -204,6 +200,8 @@ pl.ylabel("Cumulative Density")
 #pl.ylim((3.8,5.0))
 pl.yticks(fontsize=9)
 pl.xticks(visible=False)
+
+
 
 #Plot DoS
 pl.subplot(313)
