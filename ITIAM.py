@@ -17,7 +17,7 @@ import sys
 import datetime # current date for log files etc.
 now=datetime.datetime.now().strftime("%Y-%m-%d-%Hh%Mm") #String of standardised year-leading time
 
-#from IPython import embed# we do this so we can drop to interactive python for debugging; major Python coolio
+from IPython import embed# we do this so we can drop to interactive python for debugging; major Python coolio
  #  # --> embed() <-- just add this to any point in code, and TADA!
 
 ### Matplotlib setup
@@ -82,12 +82,12 @@ H=J0*np.exp(-LAMBDA*H) # calculate transfer integrals with isotropic exponential
 
 print "Generated Hamiltonian... "
 
-np.fill_diagonal(H, 0.0) #set diagonal elements to zero; so we can always see the off-digaonal elements
+#np.fill_diagonal(H, 0.0) #set diagonal elements to zero; so we can always see the off-digaonal elements
 
-pl.title("Off-diagonal elements of Hamiltonian")
-pl.imshow(H,interpolation='nearest', cmap=pl.cm.PuBuGn) # 2D colourmap of Hamiltonian, nearest interpolation.
-pl.colorbar()
-pl.show()
+#pl.title("Off-diagonal elements of Hamiltonian")
+#pl.imshow(H,interpolation='nearest', cmap=pl.cm.PuBuGn) # 2D colourmap of Hamiltonian, nearest interpolation.
+#pl.colorbar()
+#pl.show()
 
 #fig.savefig("%s-ITIAM_H.pdf"%now) #Save figures as both PDF and easy viewing PNG (perfect for talks)
 #fig.savefig("%s-ITIAM_H.png"%now)
@@ -105,6 +105,7 @@ siteEs=[]
 polarons=[]
 for i in range(SCFSTEPS): # Number of SCF steps
     evals,evecs=np.linalg.eigh(H)
+        #    for j in range(0,10):
     polaron=evecs[:,0]*evecs[:,0] #lowest energy state electron density
     #print polaron
     polarons.append(polaron)
@@ -128,6 +129,36 @@ evals,evecs=np.linalg.eigh(H) # solve final form of Hamiltonian (always computes
 #print "first Eigenvector..."
 #print evecs[0]
 
+#Find effetive size of polaron
+
+centre = np.zeros(3)
+prob = np.zeros(n)
+r = np.zeros(n)
+
+for i in range(0,n):
+    prob[i]=evecs[i,1]*evecs[i,1]
+    centre[0]+=locations[i,0]*prob[i]
+    centre[1]+=locations[i,1]*prob[i]
+    centre[2]+=locations[i,2]*prob[i]
+
+
+for i in range(0,n):
+    r[i]=np.sqrt((centre[0]-locations[i,0])*(centre[0]-locations[i,0])+(centre[1]-locations[i,1])*(centre[1]-locations[i,1])+(centre[2]-locations[i,2])*(centre[2]-locations[i,2]))
+
+idx = np.argsort(r)
+sorted_r = r[idx]
+sorted_charge = prob[idx]
+
+cum_prob = np.cumsum(sorted_charge)
+
+fig=pl.figure()
+pl.plot(sorted_r,cum_prob)
+pl.xlabel("r")
+pl.ylabel("Cumulative charge")
+pl.show()
+
+fig.savefig("%s-ITIAM_CDF.pdf"%now)
+
 fig=pl.figure()
 
 pl.title("DoS by TightBinding")
@@ -135,7 +166,7 @@ pl.subplot(311) #3 subplots stacked on top of one another
 
 #Plot Eigenvalues with filled-in Eigenvectors^2 / electron probabilities
 pl.subplot(311)
-for j in [0,n/2]: #range(0,5): #Number of eigenvalues plotted (electron wavefns)
+for j in range(0,5): #[0,n/2]: #Number of eigenvalues plotted (electron wavefns)
     psi=evecs[:,j]*evecs[:,j]
     pl.fill_between(range(n),0,psi, facecolor=colours[j%8])
 pl.ylabel("Occupation")
@@ -185,7 +216,7 @@ fp.write("from pymol.cgo import *    # get constants \nfrom pymol import cmd \n"
 
 psi=evecs[:,0]*evecs[:,0] # scale everything relative to max density on first eigenvector
 
-for ei,colour in zip( [0,n/200,n/100,n/20] , [(0,0,1),(0,1,1),(1,1,0),(1,0,0)]):
+for ei,colour in zip( [0,5,10,50] , [(0,0,1),(0,1,0),(1,1,0),(1,0,0)]):
     psi=evecs[:,ei]*evecs[:,ei]
     maxpsi=max(psi)
 
