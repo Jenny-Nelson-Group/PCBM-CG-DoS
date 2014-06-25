@@ -89,8 +89,8 @@ pl.imshow(H,interpolation='nearest', cmap=pl.cm.PuBuGn) # 2D colourmap of Hamilt
 pl.colorbar()
 pl.show()
 
-#fig.savefig("%s-ITIAM_H.pdf"%now) #Save figures as both PDF and easy viewing PNG (perfect for talks)
-#fig.savefig("%s-ITIAM_H.png"%now)
+fig.savefig("%s-ITIAM_H.pdf"%now) #Save figures as both PDF and easy viewing PNG (perfect for talks)
+fig.savefig("%s-ITIAM_H.png"%now)
 
 # Fill the diagonal elements with site energy; for tight binding
 np.fill_diagonal(H, -6.0)
