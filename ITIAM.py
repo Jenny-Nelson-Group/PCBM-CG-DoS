@@ -89,8 +89,8 @@ pl.imshow(H,interpolation='nearest', cmap=pl.cm.PuBuGn) # 2D colourmap of Hamilt
 pl.colorbar()
 pl.show()
 
-#fig.savefig("%s-ITIAM_H.pdf"%now) #Save figures as both PDF and easy viewing PNG (perfect for talks)
-#fig.savefig("%s-ITIAM_H.png"%now)
+fig.savefig("%s-ITIAM_H.pdf"%now) #Save figures as both PDF and easy viewing PNG (perfect for talks)
+fig.savefig("%s-ITIAM_H.png"%now)
 
 # Fill the diagonal elements with site energy; for tight binding
 np.fill_diagonal(H, -6.0)
@@ -98,19 +98,21 @@ np.fill_diagonal(H, -6.0)
 print "Hamiltonian fully setup, time to solve!"
 # OK; here we go - let's solve that TB Hamiltonian!
 
-ALPHA = 0.2 # some kind of effective electron phonon coupling / dielectric of medium
-SCFSTEPS = 0 
+ALPHA = 0.1 # some kind of effective electron phonon coupling / dielectric of medium
+SCFSTEPS = 5 
+
+Hp=H+0.0 #no copy
 
 siteEs=[]
 polarons=[]
 for i in range(SCFSTEPS): # Number of SCF steps
-    evals,evecs=np.linalg.eigh(H)
+    evals,evecs=np.linalg.eigh(Hp)
     polaron=evecs[:,0]*evecs[:,0] #lowest energy state electron density
     #print polaron
     polarons.append(polaron)
-    siteEs.append(H.diagonal())
+    siteEs.append(Hp.diagonal())
     #print H.diagonal()
-    np.fill_diagonal(H,-6.0-ALPHA*polaron)
+    np.fill_diagonal(Hp,-6.0-ALPHA*polaron)
 
 fig=pl.figure()
 pl.plot(np.transpose(polarons)) #transposes appended lists so that data is plotted as fn of site
@@ -119,7 +121,7 @@ pl.legend(range(len(polarons))+range(len(siteEs)))
 pl.show()
 
 fig.savefig("%s-ITIAM_SCF.pdf"%now) #Save figures as both PDF and easy viewing PNG (perfect for talks)
-#fig.savefig("%s-ITIAM_SCF.png"%now)
+fig.savefig("%s-ITIAM_SCF.png"%now)
 
 evals,evecs=np.linalg.eigh(H) # solve final form of Hamiltonian (always computes here even if no SCF steps)
 
@@ -127,25 +129,21 @@ evals,evecs=np.linalg.eigh(H) # solve final form of Hamiltonian (always computes
 
 # FIXME: Probably doesn't calculate anything other than spurious numbers
 
-psi0 = np.zeros ( (n,1) )
-psi1 = np.zeros ( (1,n) )
-
-#print psi0, psi1
+pvals,pvecs=np.linalg.eigh(Hp) #polaron eigenvectors / values
 
 polarons=[]
 overlaps=[]
-for polaron in range(1000): #[1,2,3,500]:
-    psi1=evecs[:,polaron].reshape((1,n))
-    psi0=evecs[:,0].transpose().reshape((n,1))
+for state in range(n): #:[0,1,2,3]: #range(n): #[1,2,3,500]:
+    psi0=evecs[:,state] #.reshape(1,n)
+    psi1=pvecs[:,0].reshape(1,n)
 
-    #print "psi0= ",psi0
-    #print "psi1= ",psi1
-    #print "H*psi0= ",(H*psi0)
-    #print "Inner psi1, H*psi0= ",np.inner(psi1,H*psi0)
-    J=np.inner(psi1,H*psi0).trace()
-    print polaron,J
+#    print "psi0= ",psi0
+#    print "psi1= ",psi1
+#    print "H= ", H
+    J=np.dot(psi0,np.inner(H,psi1))
+#    print state,J
     overlaps.append(J)
-    polarons.append(polaron)
+    polarons.append(state)
 
 print overlaps
 
@@ -153,6 +151,8 @@ fig=pl.figure()
 pl.title("Js by Polaron Orbital Overlap")
 pl.plot(polarons,overlaps)
 pl.show()
+fig.savefig("%s-ITIAM_POO.pdf"%now) #Save figures as both PDF and easy viewing PNG (perfect for talks)
+fig.savefig("%s-ITIAM_POO.png"%now)
 
 # TODO: calculate Js from polaron ensemble orbitals
 
@@ -168,9 +168,16 @@ pl.subplot(311) #3 subplots stacked on top of one another
 
 #Plot Eigenvalues with filled-in Eigenvectors^2 / electron probabilities
 pl.subplot(311)
+
+#Plot polaron
+psi=pvecs[:,0]*pvecs[:,0]
+pl.fill_between(range(n),0,psi, facecolor='k')
+pl.plot(range(n),pvecs[:,0],color='k')
+
 for j in [0,n/2]: #range(0,5): #Number of eigenvalues plotted (electron wavefns)
     psi=evecs[:,j]*evecs[:,j]
     pl.fill_between(range(n),0,psi, facecolor=colours[j%8])
+    pl.plot(range(n),evecs[:,j],color=colours[j%8])
 pl.ylabel("Occupation")
 #pl.ylim((3.8,5.0))
 pl.yticks(fontsize=9)
@@ -194,6 +201,8 @@ pl.ylabel("Cumulative Density")
 pl.yticks(fontsize=9)
 pl.xticks(visible=False)
 
+
+
 #Plot DoS
 pl.subplot(313)
 pl.hist(evals,100,histtype='stepfilled',color=colours[0])
@@ -210,7 +219,7 @@ print "Saving figures...(one moment please)"
 pl.annotate("%s"%now,xy=(0.75,0.02),xycoords='figure fraction') #Date Stamp in corner
 
 fig.savefig("%s-ITIAM_3fig.pdf"%now) #Save figures as both PDF and easy viewing PNG (perfect for talks)
-#fig.savefig("%s-ITIAM_3fig.png"%now)
+fig.savefig("%s-ITIAM_3fig.png"%now)
 #fig.savefig("%s-LongSnakeMoan.ps"%now)    # TODO: check with latest python scripts to see best way to export these for future inclusion in Latex etc.
 
 fp=open('eigenvector_balls_pymol.py','w')
