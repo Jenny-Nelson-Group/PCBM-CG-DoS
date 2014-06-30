@@ -93,26 +93,40 @@ print "Generated Hamiltonian... "
 #fig.savefig("%s-ITIAM_H.png"%now)
 
 # Fill the diagonal elements with site energy; for tight binding
-np.fill_diagonal(H, -6.0)
+#np.fill_diagonal(H, -6.0)
+
+for j in range(0,n):
+
+#Generate gaussian noise with variance dx and mean 0
+    dx=0.03
+    if dx==0:noise=0
+    else:noise=np.random.normal(loc=0.0,scale=dx)
+
+#Add noise to each diagonal element of Hamiltonian
+    H[j,j]=-6+noise
+
+#print H
 
 print "Hamiltonian fully setup, time to solve!"
 # OK; here we go - let's solve that TB Hamiltonian!
 
 ALPHA = 0.2 # some kind of effective electron phonon coupling / dielectric of medium
-SCFSTEPS = 100 
+SCFSTEPS = 5 
+
+Hp=H+0.0 #no copy
 
 siteEs=[]
 polarons=[]
 for i in range(SCFSTEPS): # Number of SCF steps
     evals,evecs=np.linalg.eigh(H)
-        #    for j in range(0,10):
+    evals,evecs=np.linalg.eigh(Hp)
     polaron=evecs[:,0]*evecs[:,0] #lowest energy state electron density
     #print polaron
     polarons.append(polaron)
-    siteEs.append(H.diagonal())
+    siteEs.append(Hp.diagonal())
     #print H.diagonal()
-    np.fill_diagonal(H,-6.0-ALPHA*polaron)
-
+    np.fill_diagonal(Hp,-6.0-ALPHA*polaron)
+print "Hamiltonian solved"
 fig=pl.figure()
 pl.plot(np.transpose(polarons)) #transposes appended lists so that data is plotted as fn of site
 pl.plot(np.transpose(siteEs)+6.0)
@@ -124,40 +138,102 @@ fig.savefig("%s-ITIAM_SCF.pdf"%now) #Save figures as both PDF and easy viewing P
 
 evals,evecs=np.linalg.eigh(H) # solve final form of Hamiltonian (always computes here even if no SCF steps)
 
+# TODO: calculate Js from polaron ensemble orbitals
+
+# FIXME: Probably doesn't calculate anything other than spurious numbers
+
+pvals,pvecs=np.linalg.eigh(Hp) #polaron eigenvectors / values
+
+polarons=[]
+overlaps=[]
+for state in range(n): #:[0,1,2,3]: #range(n): #[1,2,3,500]:
+    psi0=evecs[:,state] #.reshape(1,n)
+    psi1=pvecs[:,0].reshape(1,n)
+
+#    print "psi0= ",psi0
+#    print "psi1= ",psi1
+#    print "H= ", H
+    J=np.dot(psi0,np.inner(H,psi1))
+#    print state,J
+    overlaps.append(J)
+    polarons.append(state)
+
+#print overlaps
+
+fig=pl.figure()
+pl.title("Js by Polaron Orbital Overlap")
+pl.plot(polarons,overlaps)
+pl.show()
+fig.savefig("%s-ITIAM_POO.pdf"%now) #Save figures as both PDF and easy viewing PNG (perfect for talks)
+#fig.savefig("%s-ITIAM_POO.png"%now)
+
+# TODO: calculate Js from polaron ensemble orbitals
+
 #print "Eigenvalues", evals
 #print "Eigenvectors", evecs
 #print "first Eigenvector..."
 #print evecs[0]
 
-#Find effetive size of polaron
+#Find effective size of polaron
 
 centre = np.zeros(3)
 prob = np.zeros(n)
 r = np.zeros(n)
+polaron_size=np.zeros(n)
+num=0.0
+cum_prob=np.zeros(n)
+sorted_r=np.zeros(n)
 
-for i in range(0,n):
-    prob[i]=evecs[i,1]*evecs[i,1]
-    centre[0]+=locations[i,0]*prob[i]
-    centre[1]+=locations[i,1]*prob[i]
-    centre[2]+=locations[i,2]*prob[i]
+for i in range(0,100):
 
+    for j in range(0,n):
+        prob[j]=evecs[j,i]*evecs[j,i]
+        centre[0]+=locations[j,0]*prob[j]
+        centre[1]+=locations[j,1]*prob[j]
+        centre[2]+=locations[j,2]*prob[j]
 
-for i in range(0,n):
-    r[i]=np.sqrt((centre[0]-locations[i,0])*(centre[0]-locations[i,0])+(centre[1]-locations[i,1])*(centre[1]-locations[i,1])+(centre[2]-locations[i,2])*(centre[2]-locations[i,2]))
+    #Calculating how many molecules polarons localised over
 
-idx = np.argsort(r)
-sorted_r = r[idx]
-sorted_charge = prob[idx]
+    for j in range(0,n):
+        r[j]=np.sqrt((centre[0]-locations[j,0])*(centre[0]-locations[j,0])+(centre[1]-locations[j,1])*(centre[1]-locations[j,1])+(centre[2]-locations[j,2])*(centre[2]-locations[j,2]))
 
-cum_prob = np.cumsum(sorted_charge)
+    idx = np.argsort(r)
+    sorted_r = r[idx]
+    sorted_charge = prob[idx]
+
+    cum_prob = np.cumsum(sorted_charge)
+
+    for j in range (0,n):
+        if cum_prob[j]>0.95:break
+
+    polaron_size[i] = sorted_r[j]
+        
+    for j in range(0,n):
+        if prob[j]>0.05:num+=1
+    print num
+
+    centre = np.zeros(3)            #Reset centre coordinates and num
+    num=0.0
+
+#print polaron_size
+
 
 fig=pl.figure()
-pl.plot(sorted_r,cum_prob)
-pl.xlabel("r")
-pl.ylabel("Cumulative charge")
+pl.bar(evals[0:20],polaron_size[0:20],0.00001)
+pl.title("Size of polaron vs eigenvalue")
+pl.xlabel("Eigenvalues")
+pl.ylabel("Effective size of polaron")
 pl.show()
 
-fig.savefig("%s-ITIAM_CDF.pdf"%now)
+fig.savefig("%s-ITIAM_size.pdf"%now)
+
+#fig=pl.figure()
+#pl.plot(sorted_r[0],cum_prob[0])
+#pl.xlabel("r")
+#pl.ylabel("Cumulative charge for first eigenvalue")
+#pl.show()
+
+#fig.savefig("%s-ITIAM_CDF.pdf"%now)
 
 fig=pl.figure()
 
@@ -166,9 +242,19 @@ pl.subplot(311) #3 subplots stacked on top of one another
 
 #Plot Eigenvalues with filled-in Eigenvectors^2 / electron probabilities
 pl.subplot(311)
-for j in range(0,5): #[0,n/2]: #Number of eigenvalues plotted (electron wavefns)
+
+#for j in range(0,5): #[0,n/2]: #Number of eigenvalues plotted (electron wavefns)
+
+
+#Plot polaron
+psi=pvecs[:,0]*pvecs[:,0]
+pl.fill_between(range(n),0,psi, facecolor='k')
+pl.plot(range(n),pvecs[:,0],color='k')
+
+for j in [0,n/2]: #range(0,5): #Number of eigenvalues plotted (electron wavefns)
     psi=evecs[:,j]*evecs[:,j]
     pl.fill_between(range(n),0,psi, facecolor=colours[j%8])
+    pl.plot(range(n),evecs[:,j],color=colours[j%8])
 pl.ylabel("Occupation")
 #pl.ylim((3.8,5.0))
 pl.yticks(fontsize=9)
@@ -191,6 +277,8 @@ pl.ylabel("Cumulative Density")
 #pl.ylim((3.8,5.0))
 pl.yticks(fontsize=9)
 pl.xticks(visible=False)
+
+
 
 #Plot DoS
 pl.subplot(313)
