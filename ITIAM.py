@@ -110,7 +110,7 @@ for j in range(0,n):
 print "Hamiltonian fully setup, time to solve!"
 # OK; here we go - let's solve that TB Hamiltonian!
 
-ALPHA = 0.2 # some kind of effective electron phonon coupling / dielectric of medium
+ALPHA = 0.1 # some kind of effective electron phonon coupling / dielectric of medium
 SCFSTEPS = 5 
 
 Hp=H+0.0 #no copy
@@ -184,7 +184,7 @@ num=0.0
 cum_prob=np.zeros(n)
 sorted_r=np.zeros(n)
 
-for i in range(0,100):
+for i in range(0,20):
 
     for j in range(0,n):
         prob[j]=evecs[j,i]*evecs[j,i]
@@ -207,9 +207,11 @@ for i in range(0,100):
         if cum_prob[j]>0.95:break
 
     polaron_size[i] = sorted_r[j]
+
+    max_prob=max(prob)
         
     for j in range(0,n):
-        if prob[j]>0.05:num+=1
+        if prob[j]/max_prob>0.05:num+=1
     print num
 
     centre = np.zeros(3)            #Reset centre coordinates and num
@@ -285,6 +287,7 @@ pl.subplot(313)
 pl.hist(evals,100,histtype='stepfilled',color=colours[0])
 pl.ylabel("DoS")
 pl.yticks(fontsize=9)
+pl.xlim(-6.5,-5)
 
 pl.tight_layout(pad=0.3)
 
@@ -320,10 +323,10 @@ for ei,colour in zip( [0,5,10,50] , [(0,0,1),(0,1,0),(1,1,0),(1,0,0)]):
         fp.write("COLOR, %f, %f, %f,\n" %(colour[0]*weight , colour[1]*weight, colour[2]*weight))
         fp.write("SPHERE, %f, %f, %f, 5.0,\n" %(locations[i][0],locations[i][1],locations[i][2]))
  
-        psisum+=psi[i]
-        if (psisum>0.90): #only if this amount of electron density or above
-            print "Eigvec: %d .95 density at %d" %(ei,i)
-            break 
+ #        psisum+=psi[i]
+ #       if (psisum>0.90): #only if this amount of electron density or above
+ #           print "Eigvec: %d .95 density at %d" %(ei,i)
+ #           break
  
     fp.write(" END \n]\ncmd.load_cgo(obj,'EV_%d') \n" %(ei))
 
