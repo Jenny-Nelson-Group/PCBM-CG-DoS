@@ -93,19 +93,11 @@ print "Generated Hamiltonian... "
 #fig.savefig("%s-ITIAM_H.png"%now)
 
 # Fill the diagonal elements with site energy; for tight binding
-#np.fill_diagonal(H, -6.0)
-
-for j in range(0,n):
+#np.fill_diagonal(H, -6.0) # old code - fixed site energy
 
 #Generate gaussian noise with variance dx and mean 0
-    dx=0.03
-    if dx==0:noise=0
-    else:noise=np.random.normal(loc=0.0,scale=dx)
-
-#Add noise to each diagonal element of Hamiltonian
-    H[j,j]=-6+noise
-
-#print H
+dx=0.03
+np.fill_diagonal(H,np.random.normal(loc=-6.0,scale=dx,size=n))
 
 print "Hamiltonian fully setup, time to solve!"
 # OK; here we go - let's solve that TB Hamiltonian!
