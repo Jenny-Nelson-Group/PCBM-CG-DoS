@@ -17,7 +17,7 @@ import sys
 import datetime # current date for log files etc.
 now=datetime.datetime.now().strftime("%Y-%m-%d-%Hh%Mm") #String of standardised year-leading time
 
-#from IPython import embed# we do this so we can drop to interactive python for debugging; major Python coolio
+from IPython import embed# we do this so we can drop to interactive python for debugging; major Python coolio
  #  # --> embed() <-- just add this to any point in code, and TADA!
 
 ### Matplotlib setup
@@ -82,18 +82,30 @@ H=J0*np.exp(-LAMBDA*H) # calculate transfer integrals with isotropic exponential
 
 print "Generated Hamiltonian... "
 
-np.fill_diagonal(H, 0.0) #set diagonal elements to zero; so we can always see the off-digaonal elements
+#np.fill_diagonal(H, 0.0) #set diagonal elements to zero; so we can always see the off-digaonal elements
 
-pl.title("Off-diagonal elements of Hamiltonian")
-pl.imshow(H,interpolation='nearest', cmap=pl.cm.PuBuGn) # 2D colourmap of Hamiltonian, nearest interpolation.
-pl.colorbar()
-pl.show()
+#pl.title("Off-diagonal elements of Hamiltonian")
+#pl.imshow(H,interpolation='nearest', cmap=pl.cm.PuBuGn) # 2D colourmap of Hamiltonian, nearest interpolation.
+#pl.colorbar()
+#pl.show()
 
-fig.savefig("%s-ITIAM_H.pdf"%now) #Save figures as both PDF and easy viewing PNG (perfect for talks)
-fig.savefig("%s-ITIAM_H.png"%now)
+#fig.savefig("%s-ITIAM_H.pdf"%now) #Save figures as both PDF and easy viewing PNG (perfect for talks)
+#fig.savefig("%s-ITIAM_H.png"%now)
 
 # Fill the diagonal elements with site energy; for tight binding
-np.fill_diagonal(H, -6.0)
+#np.fill_diagonal(H, -6.0)
+
+for j in range(0,n):
+
+#Generate gaussian noise with variance dx and mean 0
+    dx=0.03
+    if dx==0:noise=0
+    else:noise=np.random.normal(loc=0.0,scale=dx)
+
+#Add noise to each diagonal element of Hamiltonian
+    H[j,j]=-6+noise
+
+#print H
 
 print "Hamiltonian fully setup, time to solve!"
 # OK; here we go - let's solve that TB Hamiltonian!
@@ -106,6 +118,7 @@ Hp=H+0.0 #no copy
 siteEs=[]
 polarons=[]
 for i in range(SCFSTEPS): # Number of SCF steps
+    evals,evecs=np.linalg.eigh(H)
     evals,evecs=np.linalg.eigh(Hp)
     polaron=evecs[:,0]*evecs[:,0] #lowest energy state electron density
     #print polaron
@@ -113,7 +126,7 @@ for i in range(SCFSTEPS): # Number of SCF steps
     siteEs.append(Hp.diagonal())
     #print H.diagonal()
     np.fill_diagonal(Hp,-6.0-ALPHA*polaron)
-
+print "Hamiltonian solved"
 fig=pl.figure()
 pl.plot(np.transpose(polarons)) #transposes appended lists so that data is plotted as fn of site
 pl.plot(np.transpose(siteEs)+6.0)
@@ -121,7 +134,7 @@ pl.legend(range(len(polarons))+range(len(siteEs)))
 pl.show()
 
 fig.savefig("%s-ITIAM_SCF.pdf"%now) #Save figures as both PDF and easy viewing PNG (perfect for talks)
-fig.savefig("%s-ITIAM_SCF.png"%now)
+#fig.savefig("%s-ITIAM_SCF.png"%now)
 
 evals,evecs=np.linalg.eigh(H) # solve final form of Hamiltonian (always computes here even if no SCF steps)
 
@@ -145,14 +158,14 @@ for state in range(n): #:[0,1,2,3]: #range(n): #[1,2,3,500]:
     overlaps.append(J)
     polarons.append(state)
 
-print overlaps
+#print overlaps
 
 fig=pl.figure()
 pl.title("Js by Polaron Orbital Overlap")
 pl.plot(polarons,overlaps)
 pl.show()
 fig.savefig("%s-ITIAM_POO.pdf"%now) #Save figures as both PDF and easy viewing PNG (perfect for talks)
-fig.savefig("%s-ITIAM_POO.png"%now)
+#fig.savefig("%s-ITIAM_POO.png"%now)
 
 # TODO: calculate Js from polaron ensemble orbitals
 
@@ -161,6 +174,69 @@ fig.savefig("%s-ITIAM_POO.png"%now)
 #print "first Eigenvector..."
 #print evecs[0]
 
+#Find effective size of polaron
+
+centre = np.zeros(3)
+prob = np.zeros(n)
+r = np.zeros(n)
+polaron_size=np.zeros(n)
+num=0.0
+cum_prob=np.zeros(n)
+sorted_r=np.zeros(n)
+
+for i in range(0,20):
+
+    for j in range(0,n):
+        prob[j]=evecs[j,i]*evecs[j,i]
+        centre[0]+=locations[j,0]*prob[j]
+        centre[1]+=locations[j,1]*prob[j]
+        centre[2]+=locations[j,2]*prob[j]
+
+    #Calculating how many molecules polarons localised over
+
+    for j in range(0,n):
+        r[j]=np.sqrt((centre[0]-locations[j,0])*(centre[0]-locations[j,0])+(centre[1]-locations[j,1])*(centre[1]-locations[j,1])+(centre[2]-locations[j,2])*(centre[2]-locations[j,2]))
+
+    idx = np.argsort(r)
+    sorted_r = r[idx]
+    sorted_charge = prob[idx]
+
+    cum_prob = np.cumsum(sorted_charge)
+
+    for j in range (0,n):
+        if cum_prob[j]>0.95:break
+
+    polaron_size[i] = sorted_r[j]
+
+    max_prob=max(prob)
+        
+    for j in range(0,n):
+        if prob[j]/max_prob>0.05:num+=1
+    print num
+
+    centre = np.zeros(3)            #Reset centre coordinates and num
+    num=0.0
+
+#print polaron_size
+
+
+fig=pl.figure()
+pl.bar(evals[0:20],polaron_size[0:20],0.00001)
+pl.title("Size of polaron vs eigenvalue")
+pl.xlabel("Eigenvalues")
+pl.ylabel("Effective size of polaron")
+pl.show()
+
+fig.savefig("%s-ITIAM_size.pdf"%now)
+
+#fig=pl.figure()
+#pl.plot(sorted_r[0],cum_prob[0])
+#pl.xlabel("r")
+#pl.ylabel("Cumulative charge for first eigenvalue")
+#pl.show()
+
+#fig.savefig("%s-ITIAM_CDF.pdf"%now)
+
 fig=pl.figure()
 
 pl.title("DoS by TightBinding")
@@ -168,6 +244,9 @@ pl.subplot(311) #3 subplots stacked on top of one another
 
 #Plot Eigenvalues with filled-in Eigenvectors^2 / electron probabilities
 pl.subplot(311)
+
+#for j in range(0,5): #[0,n/2]: #Number of eigenvalues plotted (electron wavefns)
+
 
 #Plot polaron
 psi=pvecs[:,0]*pvecs[:,0]
@@ -208,6 +287,7 @@ pl.subplot(313)
 pl.hist(evals,100,histtype='stepfilled',color=colours[0])
 pl.ylabel("DoS")
 pl.yticks(fontsize=9)
+pl.xlim(-6.5,-5)
 
 pl.tight_layout(pad=0.3)
 
@@ -219,7 +299,7 @@ print "Saving figures...(one moment please)"
 pl.annotate("%s"%now,xy=(0.75,0.02),xycoords='figure fraction') #Date Stamp in corner
 
 fig.savefig("%s-ITIAM_3fig.pdf"%now) #Save figures as both PDF and easy viewing PNG (perfect for talks)
-fig.savefig("%s-ITIAM_3fig.png"%now)
+#fig.savefig("%s-ITIAM_3fig.png"%now)
 #fig.savefig("%s-LongSnakeMoan.ps"%now)    # TODO: check with latest python scripts to see best way to export these for future inclusion in Latex etc.
 
 fp=open('eigenvector_balls_pymol.py','w')
@@ -227,7 +307,7 @@ fp.write("from pymol.cgo import *    # get constants \nfrom pymol import cmd \n"
 
 psi=evecs[:,0]*evecs[:,0] # scale everything relative to max density on first eigenvector
 
-for ei,colour in zip( [0,n/200,n/100,n/20] , [(0,0,1),(0,1,1),(1,1,0),(1,0,0)]):
+for ei,colour in zip( [0,5,10,50] , [(0,0,1),(0,1,0),(1,1,0),(1,0,0)]):
     psi=evecs[:,ei]*evecs[:,ei]
     maxpsi=max(psi)
 
@@ -243,10 +323,10 @@ for ei,colour in zip( [0,n/200,n/100,n/20] , [(0,0,1),(0,1,1),(1,1,0),(1,0,0)]):
         fp.write("COLOR, %f, %f, %f,\n" %(colour[0]*weight , colour[1]*weight, colour[2]*weight))
         fp.write("SPHERE, %f, %f, %f, 5.0,\n" %(locations[i][0],locations[i][1],locations[i][2]))
  
-        psisum+=psi[i]
-        if (psisum>0.90): #only if this amount of electron density or above
-            print "Eigvec: %d .95 density at %d" %(ei,i)
-            break 
+ #        psisum+=psi[i]
+ #       if (psisum>0.90): #only if this amount of electron density or above
+ #           print "Eigvec: %d .95 density at %d" %(ei,i)
+ #           break
  
     fp.write(" END \n]\ncmd.load_cgo(obj,'EV_%d') \n" %(ei))
 
