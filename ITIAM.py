@@ -17,6 +17,10 @@ import sys
 import datetime # current date for log files etc.
 now=datetime.datetime.now().strftime("%Y-%m-%d-%Hh%Mm") #String of standardised year-leading time
 
+def archivefigure(name="default"):
+    fig.savefig("%s-ITIAM_%s.pdf"%(now,name)) #Save figures as both PDF and easy viewing PNG (perfect for talks)
+    fig.savefig("%s-ITIAM_%s.png"%(now,name))
+
 from IPython import embed# we do this so we can drop to interactive python for debugging; major Python coolio
  #  # --> embed() <-- just add this to any point in code, and TADA!
 
@@ -30,10 +34,6 @@ except ImportError: #If no brewer2mpl library
     #Otherwise, boring built in ones...
     colours='brgcmkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkk' # Aaah, we fade to grey (fade to grey)
     print "Hey - no brewer2mpl (try 'pip install brewer2mpl'). Thus a simple palette."
-
-# Matplotlib - initialise figure
-fig=pl.figure()
-pl.axes().set_aspect('equal') # Square data .'. square figure please
 
 # Setup size of system to study...
 # if present, read in number of sites from argument {1}
@@ -71,7 +71,7 @@ if (PBCS==True):
     distancematrix[distancematrix>0.5]-=1.0 #minimum image convention
 
 distancematrix*=cell # scale back to real coordinates
-locations*=cell # scale to 
+locations*=cell # scale from fractional coordinates to real distances 
 
 H=np.apply_along_axis(np.linalg.norm,2,distancematrix) # distances via linalg norm command on suitables axes
 # elements in H are now euler distances between those sites {i,j}
@@ -84,13 +84,16 @@ print "Generated Hamiltonian... "
 
 #np.fill_diagonal(H, 0.0) #set diagonal elements to zero; so we can always see the off-digaonal elements
 
-#pl.title("Off-diagonal elements of Hamiltonian")
-#pl.imshow(H,interpolation='nearest', cmap=pl.cm.PuBuGn) # 2D colourmap of Hamiltonian, nearest interpolation.
-#pl.colorbar()
-#pl.show()
+# Matplotlib - initialise figure
+fig=pl.figure()
+pl.axes().set_aspect('equal') # Square data .'. square figure please
 
-#fig.savefig("%s-ITIAM_H.pdf"%now) #Save figures as both PDF and easy viewing PNG (perfect for talks)
-#fig.savefig("%s-ITIAM_H.png"%now)
+pl.title("Off-diagonal elements of Hamiltonian")
+pl.imshow(H,interpolation='nearest', cmap=pl.cm.PuBuGn) # 2D colourmap of Hamiltonian, nearest interpolation.
+pl.colorbar()
+pl.show()
+
+archivefigure("H")
 
 # Fill the diagonal elements with site energy; for tight binding
 #np.fill_diagonal(H, -6.0) # old code - fixed site energy
@@ -156,8 +159,8 @@ fig=pl.figure()
 pl.title("Js by Polaron Orbital Overlap")
 pl.plot(polarons,overlaps)
 pl.show()
-fig.savefig("%s-ITIAM_POO.pdf"%now) #Save figures as both PDF and easy viewing PNG (perfect for talks)
-#fig.savefig("%s-ITIAM_POO.png"%now)
+
+archivefigure("POO")
 
 # TODO: calculate Js from polaron ensemble orbitals
 
@@ -213,13 +216,13 @@ for i in range(0,20):
 
 
 fig=pl.figure()
-pl.bar(evals[0:20],polaron_size[0:20],0.00001)
+pl.bar(evals[0:999],polaron_size[0:999],0.00001)
 pl.title("Size of polaron vs eigenvalue")
 pl.xlabel("Eigenvalues")
 pl.ylabel("Effective size of polaron")
 pl.show()
 
-fig.savefig("%s-ITIAM_size.pdf"%now)
+archivefigure("size")
 
 #fig=pl.figure()
 #pl.plot(sorted_r[0],cum_prob[0])
@@ -227,7 +230,7 @@ fig.savefig("%s-ITIAM_size.pdf"%now)
 #pl.ylabel("Cumulative charge for first eigenvalue")
 #pl.show()
 
-#fig.savefig("%s-ITIAM_CDF.pdf"%now)
+#archivefigure("CDF")
 
 fig=pl.figure()
 
@@ -272,8 +275,6 @@ pl.ylabel("Cumulative Density")
 pl.yticks(fontsize=9)
 pl.xticks(visible=False)
 
-
-
 #Plot DoS
 pl.subplot(313)
 pl.hist(evals,100,histtype='stepfilled',color=colours[0])
@@ -290,9 +291,7 @@ print "Lowest Eigenvalue:\n", evals[0]
 print "Saving figures...(one moment please)"
 pl.annotate("%s"%now,xy=(0.75,0.02),xycoords='figure fraction') #Date Stamp in corner
 
-fig.savefig("%s-ITIAM_3fig.pdf"%now) #Save figures as both PDF and easy viewing PNG (perfect for talks)
-#fig.savefig("%s-ITIAM_3fig.png"%now)
-#fig.savefig("%s-LongSnakeMoan.ps"%now)    # TODO: check with latest python scripts to see best way to export these for future inclusion in Latex etc.
+archivefigure("3fig")
 
 fp=open('eigenvector_balls_pymol.py','w')
 fp.write("from pymol.cgo import *    # get constants \nfrom pymol import cmd \n")
