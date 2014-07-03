@@ -98,19 +98,19 @@ print "Generated Hamiltonian... "
 for j in range(0,n):
 
 #Generate gaussian noise with variance dx and mean 0
-    dx=0.03
+    dx=0.056
     if dx==0:noise=0
     else:noise=np.random.normal(loc=0.0,scale=dx)
 
 #Add noise to each diagonal element of Hamiltonian
-    H[j,j]=-6+noise
+    H[j,j]=-3.7+noise
 
 #print H
 
 print "Hamiltonian fully setup, time to solve!"
 # OK; here we go - let's solve that TB Hamiltonian!
 
-ALPHA = 0.1 # some kind of effective electron phonon coupling / dielectric of medium
+ALPHA = 0.0 # some kind of effective electron phonon coupling / dielectric of medium
 SCFSTEPS = 5 
 
 Hp=H+0.0 #no copy
@@ -125,11 +125,11 @@ for i in range(SCFSTEPS): # Number of SCF steps
     polarons.append(polaron)
     siteEs.append(Hp.diagonal())
     #print H.diagonal()
-    np.fill_diagonal(Hp,-6.0-ALPHA*polaron)
+    np.fill_diagonal(Hp,-3.7-ALPHA*polaron)
 print "Hamiltonian solved"
 fig=pl.figure()
 pl.plot(np.transpose(polarons)) #transposes appended lists so that data is plotted as fn of site
-pl.plot(np.transpose(siteEs)+6.0)
+pl.plot(np.transpose(siteEs)+3.7)
 pl.legend(range(len(polarons))+range(len(siteEs)))
 pl.show()
 
@@ -137,6 +137,10 @@ fig.savefig("%s-ITIAM_SCF.pdf"%now) #Save figures as both PDF and easy viewing P
 #fig.savefig("%s-ITIAM_SCF.png"%now)
 
 evals,evecs=np.linalg.eigh(H) # solve final form of Hamiltonian (always computes here even if no SCF steps)
+
+evals_range = np.max(evals)-np.min(evals)
+
+print "Range of eigenvalues is: ", evals_range
 
 # TODO: calculate Js from polaron ensemble orbitals
 
@@ -184,7 +188,7 @@ num=0.0
 cum_prob=np.zeros(n)
 sorted_r=np.zeros(n)
 
-for i in range(0,20):
+for i in range(0,1000):
 
     for j in range(0,n):
         prob[j]=evecs[j,i]*evecs[j,i]
@@ -212,19 +216,27 @@ for i in range(0,20):
         
     for j in range(0,n):
         if prob[j]/max_prob>0.05:num+=1
-    print num
+#    print num
 
     centre = np.zeros(3)            #Reset centre coordinates and num
     num=0.0
 
 #print polaron_size
 
+polaron_evals=np.zeros((n,2))
+for i in range (0,n):
+   polaron_evals[i,0]=evals[i]
+   polaron_evals[i,1]=r[i]
+
+np.savetxt("Polaron_vs_evals.dat",polaron_evals,delimiter=' ',newline='\n')
+
 
 fig=pl.figure()
-pl.bar(evals[0:20],polaron_size[0:20],0.00001)
+pl.bar(evals[0:1000],polaron_size[0:1000],0.00001)
 pl.title("Size of polaron vs eigenvalue")
 pl.xlabel("Eigenvalues")
 pl.ylabel("Effective size of polaron")
+pl.xlim(-3.88,-3.47)
 pl.show()
 
 fig.savefig("%s-ITIAM_size.pdf"%now)
@@ -287,7 +299,7 @@ pl.subplot(313)
 pl.hist(evals,100,histtype='stepfilled',color=colours[0])
 pl.ylabel("DoS")
 pl.yticks(fontsize=9)
-pl.xlim(-6.5,-5)
+#pl.xlim(-6.5,-5)
 
 pl.tight_layout(pad=0.3)
 
