@@ -25,9 +25,9 @@ double gauss(double x, double dx)
     double u1=uniformRandom();
     double u2=uniformRandom();
     
-    noise=sqrt(dx*-2.*log(u1))*cos(u2)*2*M_PI;
+    noise=dx*sqrt(-2.*log(u1))*cos((u2)*2*M_PI);
     
-    x=x+noise;
+    x+=noise;
     
     return x;
 }
@@ -75,7 +75,7 @@ int main()
                 d=sqrt(x*x+y*y+z*z);
                 
                 s=-6.0;
-                s_dis=gauss(s,0);
+                s_dis=gauss(s,0.001);
                 
                 if (d<=mind)
                     printf("%d\t%d\t%lf\t%lf\n",i,j,prefactor*exp(-d*lambda),s_dis); //increasing factor makes J tail off 'sharper'
