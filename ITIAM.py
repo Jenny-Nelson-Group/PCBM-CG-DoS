@@ -182,7 +182,7 @@ polaron_size=np.zeros(n)
 num=0.0
 cum_prob=np.zeros(n)
 sorted_r=np.zeros(n)
-max_prob=np.zeros(n)
+num=np.zeros(n)
 
 for i in range(0,1000):
 
@@ -196,7 +196,7 @@ for i in range(0,1000):
     centre[1]=locations[max_index,1]
     centre[2]=locations[max_index,2]
 
-    max_prob[i]=max(prob)
+    max_prob=max(prob)
 
     #Calculating how many molecules polarons localised over
 
@@ -215,8 +215,12 @@ for i in range(0,1000):
 
     polaron_size[i] = sorted_r[j]
 
+    for j in range(0,n):
+        if prob[j]/max_prob>0.05:num[i]+=1
+
     centre = np.zeros(3)            #Reset centre coordinates and num
 
+print num[0:10]
 
 #print polaron_size
 
@@ -227,11 +231,8 @@ for i in range (0,n):
 
 np.savetxt("Polaron_vs_evals.dat",polaron_evals,delimiter=' ',newline='\n')
 
-for i in range (0,10):
-    for j in range(0,n):
-        if prob[j]/max_prob[i]>0.05:num+=1
-    print num
-    num=0.0
+
+#Print number of molecules polaron localised over for first 10 eigenvalues
 
 fig=pl.figure()
 pl.bar(pvals[0:100],polaron_size[0:100],0.00001)
