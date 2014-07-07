@@ -19,7 +19,7 @@ now=datetime.datetime.now().strftime("%Y-%m-%d-%Hh%Mm") #String of standardised 
 
 def archivefigure(name="default"):
     fig.savefig("%s-ITIAM_%s.pdf"%(now,name)) #Save figures as both PDF and easy viewing PNG (perfect for talks)
-    fig.savefig("%s-ITIAM_%s.png"%(now,name))
+#fig.savefig("%s-ITIAM_%s.png"%(now,name))
 
 from IPython import embed# we do this so we can drop to interactive python for debugging; major Python coolio
  #  # --> embed() <-- just add this to any point in code, and TADA!
@@ -93,7 +93,7 @@ pl.imshow(H,interpolation='nearest', cmap=pl.cm.PuBuGn) # 2D colourmap of Hamilt
 pl.colorbar()
 pl.show()
 
-archivefigure("H")
+#archivefigure("H")
 
 # Fill the diagonal elements with site energy; for tight binding
 
@@ -106,7 +106,7 @@ else:np.fill_diagonal(H,np.random.normal(loc=-3.7,scale=dx,size=n))
 print "Hamiltonian fully setup, time to solve!"
 # OK; here we go - let's solve that TB Hamiltonian!
 
-ALPHA = 0.0 # some kind of effective electron phonon coupling / dielectric of medium
+ALPHA = 0.5 # some kind of effective electron phonon coupling / dielectric of medium
 SCFSTEPS = 5 
 
 Hp=H+0.0 #no copy
@@ -129,14 +129,13 @@ pl.plot(np.transpose(siteEs)+3.7)
 pl.legend(range(len(polarons))+range(len(siteEs)))
 pl.show()
 
-fig.savefig("%s-ITIAM_SCF.pdf"%now) #Save figures as both PDF and easy viewing PNG (perfect for talks)
-#fig.savefig("%s-ITIAM_SCF.png"%now)
+archivefigure("SCF")
 
 evals,evecs=np.linalg.eigh(H) # solve final form of Hamiltonian (always computes here even if no SCF steps)
 
 evals_range = np.max(evals)-np.min(evals)
 
-print "Range of eigenvalues is: ", evals_range
+#print "Range of eigenvalues is: ", evals_range
 
 # TODO: calculate Js from polaron ensemble orbitals
 
@@ -165,7 +164,7 @@ pl.title("Js by Polaron Orbital Overlap")
 pl.plot(polarons,overlaps)
 pl.show()
 
-archivefigure("POO")
+#archivefigure("POO")
 
 # TODO: calculate Js from polaron ensemble orbitals
 
@@ -183,14 +182,21 @@ polaron_size=np.zeros(n)
 num=0.0
 cum_prob=np.zeros(n)
 sorted_r=np.zeros(n)
+max_prob=np.zeros(n)
 
 for i in range(0,1000):
 
     for j in range(0,n):
-        prob[j]=evecs[j,i]*evecs[j,i]
-        centre[0]+=locations[j,0]*prob[j]
-        centre[1]+=locations[j,1]*prob[j]
-        centre[2]+=locations[j,2]*prob[j]
+        prob[j]=pvecs[j,i]*pvecs[j,i]
+        #        centre[0]+=locations[j,0]*prob[j]
+        #        centre[1]+=locations[j,1]*prob[j]
+        #        centre[2]+=locations[j,2]*prob[j]
+    max_index=np.argmax(prob)
+    centre[0]=locations[max_index,0]
+    centre[1]=locations[max_index,1]
+    centre[2]=locations[max_index,2]
+
+    max_prob[i]=max(prob)
 
     #Calculating how many molecules polarons localised over
 
@@ -200,6 +206,7 @@ for i in range(0,1000):
     idx = np.argsort(r)
     sorted_r = r[idx]
     sorted_charge = prob[idx]
+#    print sorted_r
 
     cum_prob = np.cumsum(sorted_charge)
 
@@ -208,40 +215,39 @@ for i in range(0,1000):
 
     polaron_size[i] = sorted_r[j]
 
-    max_prob=max(prob)
-        
-    for j in range(0,n):
-        if prob[j]/max_prob>0.05:num+=1
-#    print num
-
     centre = np.zeros(3)            #Reset centre coordinates and num
-    num=0.0
+
 
 #print polaron_size
 
 polaron_evals=np.zeros((n,2))
 for i in range (0,n):
-   polaron_evals[i,0]=evals[i]
-   polaron_evals[i,1]=r[i]
+   polaron_evals[i,0]=pvals[i]
+   polaron_evals[i,1]=polaron_size[i]
 
 np.savetxt("Polaron_vs_evals.dat",polaron_evals,delimiter=' ',newline='\n')
 
+for i in range (0,10):
+    for j in range(0,n):
+        if prob[j]/max_prob[i]>0.05:num+=1
+    print num
+    num=0.0
 
 fig=pl.figure()
-pl.bar(evals[0:1000],polaron_size[0:1000],0.00001)
+pl.bar(pvals[0:100],polaron_size[0:100],0.00001)
 pl.title("Size of polaron vs eigenvalue")
 pl.xlabel("Eigenvalues")
 pl.ylabel("Effective size of polaron")
-pl.xlim(-3.88,-3.47)
+#pl.xlim(-3.88,-3.47)
 pl.show()
 
 archivefigure("size")
 
-#fig=pl.figure()
-#pl.plot(sorted_r[0],cum_prob[0])
-#pl.xlabel("r")
-#pl.ylabel("Cumulative charge for first eigenvalue")
-#pl.show()
+fig=pl.figure()
+pl.plot(sorted_r[0],cum_prob[0])
+pl.xlabel("r")
+pl.ylabel("Cumulative charge for first eigenvalue")
+pl.show()
 
 #archivefigure("CDF")
 
@@ -309,10 +315,10 @@ archivefigure("3fig")
 fp=open('eigenvector_balls_pymol.py','w')
 fp.write("from pymol.cgo import *    # get constants \nfrom pymol import cmd \n")
 
-psi=evecs[:,0]*evecs[:,0] # scale everything relative to max density on first eigenvector
+psi=pvecs[:,0]*pvecs[:,0] # scale everything relative to max density on first eigenvector
 
 for ei,colour in zip( [0,5,10,50] , [(0,0,1),(0,1,0),(1,1,0),(1,0,0)]):
-    psi=evecs[:,ei]*evecs[:,ei]
+    psi=pvecs[:,ei]*pvecs[:,ei]
     maxpsi=max(psi)
 
     fp.write("obj = [\n")
