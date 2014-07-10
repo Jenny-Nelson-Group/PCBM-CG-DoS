@@ -18,8 +18,11 @@ import datetime # current date for log files etc.
 now=datetime.datetime.now().strftime("%Y-%m-%d-%Hh%Mm") #String of standardised year-leading time
 
 def archivefigure(name="default"):
-    fig.savefig("%s-ITIAM_%s.pdf"%(now,name)) #Save figures as both PDF and easy viewing PNG (perfect for talks)
+    fig.savefig("%s-Tris_%s.pdf"%(name,ALPHA)) #Save figures as both PDF and easy viewing PNG (perfect for talks)
 #fig.savefig("%s-ITIAM_%s.png"%(now,name))
+
+def savedata(name="default"):
+    np.savetxt("%s-ITIAM_%s.dat"%(dx,name),polaron_evals,delimiter=' ',newline='\n')
 
 from IPython import embed# we do this so we can drop to interactive python for debugging; major Python coolio
  #  # --> embed() <-- just add this to any point in code, and TADA!
@@ -99,29 +102,31 @@ pl.show()
 
 #Generate gaussian noise with variance dx and mean 0
 
-dx=0.0
-if dx==0.0: np.fill_diagonal(H,-3.7)
-else:np.fill_diagonal(H,np.random.normal(loc=-3.7,scale=dx,size=n))
-
 print "Hamiltonian fully setup, time to solve!"
 # OK; here we go - let's solve that TB Hamiltonian!
 
-ALPHA = 0.5 # some kind of effective electron phonon coupling / dielectric of medium
-SCFSTEPS = 5 
+np.fill_diagonal(H,-3.7)
 
 Hp=H+0.0 #no copy
 
+dx=0.0
+if dx!=0.0:np.fill_diagonal(H,np.random.normal(loc=-3.7,scale=dx,size=n))
+
+ALPHA = 0.5 # some kind of effective electron phonon coupling / dielectric of medium
+SCFSTEPS = 3
+
+
 siteEs=[]
 polarons=[]
+
 for i in range(SCFSTEPS): # Number of SCF steps
-    evals,evecs=np.linalg.eigh(H)
     evals,evecs=np.linalg.eigh(Hp)
     polaron=evecs[:,0]*evecs[:,0] #lowest energy state electron density
-    #print polaron
     polarons.append(polaron)
-    siteEs.append(Hp.diagonal())
-    #print H.diagonal()
     np.fill_diagonal(Hp,-3.7-ALPHA*polaron)
+    Hp_diagonal = np.diagonal(Hp)
+    siteEs.append(Hp_diagonal)
+
 print "Hamiltonian solved"
 fig=pl.figure()
 pl.plot(np.transpose(polarons)) #transposes appended lists so that data is plotted as fn of site
@@ -129,11 +134,11 @@ pl.plot(np.transpose(siteEs)+3.7)
 pl.legend(range(len(polarons))+range(len(siteEs)))
 pl.show()
 
-archivefigure("SCF")
+#archivefigure("SCF")
 
 evals,evecs=np.linalg.eigh(H) # solve final form of Hamiltonian (always computes here even if no SCF steps)
 
-evals_range = np.max(evals)-np.min(evals)
+#evals_range = np.max(evals)-np.min(evals)
 
 #print "Range of eigenvalues is: ", evals_range
 
@@ -179,7 +184,6 @@ centre = np.zeros(3)
 prob = np.zeros(n)
 r = np.zeros(n)
 polaron_size=np.zeros(n)
-num=0.0
 cum_prob=np.zeros(n)
 sorted_r=np.zeros(n)
 num=np.zeros(n)
@@ -206,7 +210,6 @@ for i in range(0,1000):
     idx = np.argsort(r)
     sorted_r = r[idx]
     sorted_charge = prob[idx]
-#    print sorted_r
 
     cum_prob = np.cumsum(sorted_charge)
 
@@ -229,28 +232,19 @@ for i in range (0,n):
    polaron_evals[i,0]=pvals[i]
    polaron_evals[i,1]=polaron_size[i]
 
-np.savetxt("Polaron_vs_evals.dat",polaron_evals,delimiter=' ',newline='\n')
-
+savedata("Bis")
 
 #Print number of molecules polaron localised over for first 10 eigenvalues
 
 fig=pl.figure()
-pl.bar(pvals[0:100],polaron_size[0:100],0.00001)
+pl.bar(pvals[0:1000],polaron_size[0:1000],0.00001)
 pl.title("Size of polaron vs eigenvalue")
 pl.xlabel("Eigenvalues")
 pl.ylabel("Effective size of polaron")
 #pl.xlim(-3.88,-3.47)
 pl.show()
 
-archivefigure("size")
-
-fig=pl.figure()
-pl.plot(sorted_r[0],cum_prob[0])
-pl.xlabel("r")
-pl.ylabel("Cumulative charge for first eigenvalue")
-pl.show()
-
-#archivefigure("CDF")
+#archivefigure("size")
 
 fig=pl.figure()
 
@@ -295,14 +289,16 @@ pl.ylabel("Cumulative Density")
 pl.yticks(fontsize=9)
 pl.xticks(visible=False)
 
+
+
 #Plot DoS
 pl.subplot(313)
-pl.hist(evals,100,histtype='stepfilled',color=colours[0])
+pl.hist(pvals,bins=np.linspace(min(pvals),max(pvals),100),histtype='stepfilled',color='r')
+pl.hist(evals,bins= np.linspace(min(pvals),max(pvals),100),histtype='stepfilled',color='b', alpha=0.5)
 pl.ylabel("DoS")
 pl.yticks(fontsize=9)
 #pl.xlim(-6.5,-5)
 
-pl.tight_layout(pad=0.3)
 
 pl.show() #Displays plots!
 
@@ -311,7 +307,7 @@ print "Lowest Eigenvalue:\n", evals[0]
 print "Saving figures...(one moment please)"
 pl.annotate("%s"%now,xy=(0.75,0.02),xycoords='figure fraction') #Date Stamp in corner
 
-archivefigure("3fig")
+#archivefigure("3fig")
 
 fp=open('eigenvector_balls_pymol.py','w')
 fp.write("from pymol.cgo import *    # get constants \nfrom pymol import cmd \n")
