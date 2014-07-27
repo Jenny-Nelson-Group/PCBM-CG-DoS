@@ -18,11 +18,11 @@ import datetime # current date for log files etc.
 now=datetime.datetime.now().strftime("%Y-%m-%d-%Hh%Mm") #String of standardised year-leading time
 
 def archivefigure(name="default"):
-    fig.savefig("%s-Tris_%s.pdf"%(name,ALPHA)) #Save figures as both PDF and easy viewing PNG (perfect for talks)
+    fig.savefig("%s-Bis_%s.pdf"%(name,ALPHA)) #Save figures as both PDF and easy viewing PNG (perfect for talks)
 #fig.savefig("%s-ITIAM_%s.png"%(now,name))
 
 def savedata(name="default"):
-    np.savetxt("%s-ITIAM_%s.dat"%(dx,name),polaron_evals,delimiter=' ',newline='\n')
+    np.savetxt("%s-ITIAM_%s.dat"%(ALPHA,name),polaron_evals,delimiter=' ',newline='\n')
 
 from IPython import embed# we do this so we can drop to interactive python for debugging; major Python coolio
  #  # --> embed() <-- just add this to any point in code, and TADA!
@@ -68,7 +68,7 @@ distancematrix=locations[:,None,...]-locations[None,...] # rolled over
 # Calculate distance matrix with Numpy functional programming methods. 
 #  Probably v. memory heavy.
 
-PBCS=False
+PBCS=True
 if (PBCS==True):
     distancematrix[distancematrix<0.5]+=1.0 #minimum image convention
     distancematrix[distancematrix>0.5]-=1.0 #minimum image convention
@@ -80,21 +80,21 @@ H=np.apply_along_axis(np.linalg.norm,2,distancematrix) # distances via linalg no
 # elements in H are now euler distances between those sites {i,j}
 
 J0=10
-LAMBDA=0.6
-H=J0*np.exp(-LAMBDA*H) # calculate transfer integrals with isotropic exponential form
+BETA=0.6
+H=J0*np.exp(-BETA*H) # calculate transfer integrals with isotropic exponential form
 
 print "Generated Hamiltonian... "
 
 #np.fill_diagonal(H, 0.0) #set diagonal elements to zero; so we can always see the off-digaonal elements
 
 # Matplotlib - initialise figure
-fig=pl.figure()
-pl.axes().set_aspect('equal') # Square data .'. square figure please
+#fig=pl.figure()
+#pl.axes().set_aspect('equal') # Square data .'. square figure please
 
-pl.title("Off-diagonal elements of Hamiltonian")
-pl.imshow(H,interpolation='nearest', cmap=pl.cm.PuBuGn) # 2D colourmap of Hamiltonian, nearest interpolation.
-pl.colorbar()
-pl.show()
+#pl.title("Off-diagonal elements of Hamiltonian")
+#pl.imshow(H,interpolation='nearest', cmap=pl.cm.PuBuGn) # 2D colourmap of Hamiltonian, nearest interpolation.
+#pl.colorbar()
+#pl.show()
 
 #archivefigure("H")
 
@@ -110,10 +110,19 @@ np.fill_diagonal(H,-3.7)
 Hp=H+0.0 #no copy
 
 dx=0.0
-if dx!=0.0:np.fill_diagonal(H,np.random.normal(loc=-3.7,scale=dx,size=n))
+if dx!=0.0:np.fill_diagonal(Hp,np.random.normal(loc=-3.7,scale=dx,size=n))
 
-ALPHA = 0.5 # some kind of effective electron phonon coupling / dielectric of medium
-SCFSTEPS = 3
+#eps_inf=4
+#eps_s=3.5
+
+#evals,evecs=np.linalg.eigh(Hp)
+#polaron=evecs[:,0]*evecs[:,0]
+#Calculating polaron binding energy
+#PBE=0.5*(e^2/polaron_size[0])*(1/eps_inf-1/eps_s)
+
+
+ALPHA = 0.56 # some kind of effective electron phonon coupling / dielectric of medium
+SCFSTEPS = 5
 
 
 siteEs=[]
@@ -123,16 +132,17 @@ for i in range(SCFSTEPS): # Number of SCF steps
     evals,evecs=np.linalg.eigh(Hp)
     polaron=evecs[:,0]*evecs[:,0] #lowest energy state electron density
     polarons.append(polaron)
-    np.fill_diagonal(Hp,-3.7-ALPHA*polaron)
     Hp_diagonal = np.diagonal(Hp)
     siteEs.append(Hp_diagonal)
+    np.fill_diagonal(Hp,Hp_diagonal-ALPHA*polaron)
+    
 
 print "Hamiltonian solved"
-fig=pl.figure()
-pl.plot(np.transpose(polarons)) #transposes appended lists so that data is plotted as fn of site
-pl.plot(np.transpose(siteEs)+3.7)
-pl.legend(range(len(polarons))+range(len(siteEs)))
-pl.show()
+#fig=pl.figure()
+#pl.plot(np.transpose(polarons)) #transposes appended lists so that data is plotted as fn of site
+#pl.plot(np.transpose(siteEs)+3.7)
+#pl.legend(range(len(polarons))+range(len(siteEs)))
+#pl.show()
 
 #archivefigure("SCF")
 
@@ -148,26 +158,26 @@ evals,evecs=np.linalg.eigh(H) # solve final form of Hamiltonian (always computes
 
 pvals,pvecs=np.linalg.eigh(Hp) #polaron eigenvectors / values
 
-polarons=[]
-overlaps=[]
-for state in range(n): #:[0,1,2,3]: #range(n): #[1,2,3,500]:
-    psi0=evecs[:,state] #.reshape(1,n)
-    psi1=pvecs[:,0].reshape(1,n)
+#polarons=[]
+#overlaps=[]
+#for state in range(n): #:[0,1,2,3]: #range(n): #[1,2,3,500]:
+#    psi0=evecs[:,state] #.reshape(1,n)
+#    psi1=pvecs[:,0].reshape(1,n)
 
 #    print "psi0= ",psi0
 #    print "psi1= ",psi1
 #    print "H= ", H
-    J=np.dot(psi0,np.inner(H,psi1))
+#    J=np.dot(psi0,np.inner(H,psi1))
 #    print state,J
-    overlaps.append(J)
-    polarons.append(state)
+#    overlaps.append(J)
+#    polarons.append(state)
 
 #print overlaps
 
-fig=pl.figure()
-pl.title("Js by Polaron Orbital Overlap")
-pl.plot(polarons,overlaps)
-pl.show()
+#fig=pl.figure()
+#pl.title("Js by Polaron Orbital Overlap")
+#pl.plot(polarons,overlaps)
+#pl.show()
 
 #archivefigure("POO")
 
@@ -232,7 +242,7 @@ for i in range (0,n):
    polaron_evals[i,0]=pvals[i]
    polaron_evals[i,1]=polaron_size[i]
 
-savedata("Bis")
+savedata("Tris")
 
 #Print number of molecules polaron localised over for first 10 eigenvalues
 
