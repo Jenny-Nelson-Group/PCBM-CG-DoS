@@ -14,15 +14,17 @@ import matplotlib.pyplot as pl
 # Sys for arg passing
 import sys
 
+from sys import exit
+
 import datetime # current date for log files etc.
 now=datetime.datetime.now().strftime("%Y-%m-%d-%Hh%Mm") #String of standardised year-leading time
 
 def archivefigure(name="default"):
-    fig.savefig("%s-Bis_%s.pdf"%(name,ALPHA)) #Save figures as both PDF and easy viewing PNG (perfect for talks)
+    fig.savefig("10_%s_%s_%s.pdf"%(name,dx,ALPHA)) #Save figures as both PDF and easy viewing PNG (perfect for talks)
 #fig.savefig("%s-ITIAM_%s.png"%(now,name))
 
 def savedata(name="default"):
-    np.savetxt("%s-ITIAM_%s.dat"%(ALPHA,name),polaron_evals,delimiter=' ',newline='\n')
+    np.savetxt("10_%s_%s.dat"%(dx,ALPHA),polaron_evals,delimiter=' ',newline='\n')
 
 from IPython import embed# we do this so we can drop to interactive python for debugging; major Python coolio
  #  # --> embed() <-- just add this to any point in code, and TADA!
@@ -57,6 +59,9 @@ else: cell=[100,100,100]
 #cell=[106.287,106.287,106.287] # Hard coded cell dimensions!!! FIXME
 print("Cell dimensions: ",cell)
 
+ALPHA = float(sys.argv[6])
+dx = float(sys.argv[7])
+
 # Load C60 locations from coordinate file. Format:-
 #  X Y Z
 #  Assuming angstroms.
@@ -68,7 +73,7 @@ distancematrix=locations[:,None,...]-locations[None,...] # rolled over
 # Calculate distance matrix with Numpy functional programming methods. 
 #  Probably v. memory heavy.
 
-PBCS=True
+PBCS=False
 if (PBCS==True):
     distancematrix[distancematrix<0.5]+=1.0 #minimum image convention
     distancematrix[distancematrix>0.5]-=1.0 #minimum image convention
@@ -82,6 +87,7 @@ H=np.apply_along_axis(np.linalg.norm,2,distancematrix) # distances via linalg no
 J0=10
 BETA=0.6
 H=J0*np.exp(-BETA*H) # calculate transfer integrals with isotropic exponential form
+#H=np.random.normal(loc=H,scale=0.00005) # disorder in couplings
 
 print "Generated Hamiltonian... "
 
@@ -109,19 +115,11 @@ np.fill_diagonal(H,-3.7)
 
 Hp=H+0.0 #no copy
 
-dx=0.0
+#dx=0.015
 if dx!=0.0:np.fill_diagonal(Hp,np.random.normal(loc=-3.7,scale=dx,size=n))
 
-#eps_inf=4
-#eps_s=3.5
 
-#evals,evecs=np.linalg.eigh(Hp)
-#polaron=evecs[:,0]*evecs[:,0]
-#Calculating polaron binding energy
-#PBE=0.5*(e^2/polaron_size[0])*(1/eps_inf-1/eps_s)
-
-
-ALPHA = 0.56 # some kind of effective electron phonon coupling / dielectric of medium
+#ALPHA = 0.12 # some kind of effective electron phonon coupling / dielectric of medium
 SCFSTEPS = 5
 
 
@@ -198,7 +196,7 @@ cum_prob=np.zeros(n)
 sorted_r=np.zeros(n)
 num=np.zeros(n)
 
-for i in range(0,1000):
+for i in range(0,n):
 
     for j in range(0,n):
         prob[j]=pvecs[j,i]*pvecs[j,i]
@@ -229,11 +227,15 @@ for i in range(0,1000):
     polaron_size[i] = sorted_r[j]
 
     for j in range(0,n):
-        if prob[j]/max_prob>0.05:num[i]+=1
+        if prob[j]/max_prob>0.01:num[i]+=1
 
     centre = np.zeros(3)            #Reset centre coordinates and num
 
-print num[0:10]
+#print num[0:10]
+
+#Find alpha and disorder that will localise polaron on 1 molecule (99%)
+#if num[0]==1:print "Localised with alpha= ", ALPHA, "and disorder= ", dx
+#else:exit(0)
 
 #print polaron_size
 
@@ -242,7 +244,9 @@ for i in range (0,n):
    polaron_evals[i,0]=pvals[i]
    polaron_evals[i,1]=polaron_size[i]
 
-savedata("Tris")
+np.savetxt("10_%s.dat"%(ALPHA),pvals,delimiter=' ',newline='\n')
+
+#savedata()
 
 #Print number of molecules polaron localised over for first 10 eigenvalues
 
@@ -252,7 +256,7 @@ pl.title("Size of polaron vs eigenvalue")
 pl.xlabel("Eigenvalues")
 pl.ylabel("Effective size of polaron")
 #pl.xlim(-3.88,-3.47)
-pl.show()
+#pl.show()
 
 #archivefigure("size")
 
@@ -268,18 +272,18 @@ pl.subplot(311)
 
 
 #Plot polaron
-psi=pvecs[:,0]*pvecs[:,0]
-pl.fill_between(range(n),0,psi, facecolor='k')
-pl.plot(range(n),pvecs[:,0],color='k')
+#psi=pvecs[:,0]*pvecs[:,0]
+#pl.fill_between(range(n),0,psi, facecolor='k')
+#pl.plot(range(n),pvecs[:,0],color='k')
 
-for j in [0,n/2]: #range(0,5): #Number of eigenvalues plotted (electron wavefns)
-    psi=evecs[:,j]*evecs[:,j]
+for j in range (0,1): #range(0,5): #Number of eigenvalues plotted (electron wavefns)
+    psi=pvecs[:,j]*pvecs[:,j]
     pl.fill_between(range(n),0,psi, facecolor=colours[j%8])
-    pl.plot(range(n),evecs[:,j],color=colours[j%8])
+#pl.plot(range(n),pvecs[:,j],color=colours[j%8])
 pl.ylabel("Occupation")
 #pl.ylim((3.8,5.0))
 pl.yticks(fontsize=9)
-pl.xticks(visible=False)
+#pl.xticks(visible=False)
 
 #Plot cumulative eigenvectors / probability density
 pl.subplot(312)
@@ -300,7 +304,6 @@ pl.yticks(fontsize=9)
 pl.xticks(visible=False)
 
 
-
 #Plot DoS
 pl.subplot(313)
 pl.hist(pvals,bins=np.linspace(min(pvals),max(pvals),100),histtype='stepfilled',color='r')
@@ -310,21 +313,21 @@ pl.yticks(fontsize=9)
 #pl.xlim(-6.5,-5)
 
 
-pl.show() #Displays plots!
+#pl.show() #Displays plots!
 
 print "Lowest Eigenvalue:\n", evals[0]
 
 print "Saving figures...(one moment please)"
 pl.annotate("%s"%now,xy=(0.75,0.02),xycoords='figure fraction') #Date Stamp in corner
 
-#archivefigure("3fig")
+archivefigure("DOS")
 
 fp=open('eigenvector_balls_pymol.py','w')
 fp.write("from pymol.cgo import *    # get constants \nfrom pymol import cmd \n")
 
 psi=pvecs[:,0]*pvecs[:,0] # scale everything relative to max density on first eigenvector
 
-for ei,colour in zip( [0,5,10,50] , [(0,0,1),(0,1,0),(1,1,0),(1,0,0)]):
+for ei,colour in zip( [0,1,3,5] , [(0,0,1),(0,1,0),(1,1,0),(1,0,0)]):
     psi=pvecs[:,ei]*pvecs[:,ei]
     maxpsi=max(psi)
 
