@@ -14,13 +14,15 @@ import matplotlib.pyplot as pl
 # Sys for arg passing
 import sys
 
+import pickle
+
 from sys import exit
 
 import datetime # current date for log files etc.
 now=datetime.datetime.now().strftime("%Y-%m-%d-%Hh%Mm") #String of standardised year-leading time
 
 def archivefigure(name="default"):
-    fig.savefig("10_%s_%s_%s.pdf"%(name,dx,ALPHA)) #Save figures as both PDF and easy viewing PNG (perfect for talks)
+    fig.savefig("10_%s_%s_%s_%s.pdf"%(name,dx,ALPHA,state)) #Save figures as both PDF and easy viewing PNG (perfect for talks)
 #fig.savefig("%s-ITIAM_%s.png"%(now,name))
 
 def savedata(name="default"):
@@ -61,6 +63,7 @@ print("Cell dimensions: ",cell)
 
 ALPHA = float(sys.argv[6])
 dx = float(sys.argv[7])
+state = float(sys.argv[8])
 
 # Load C60 locations from coordinate file. Format:-
 #  X Y Z
@@ -83,6 +86,7 @@ locations*=cell # scale from fractional coordinates to real distances
 
 H=np.apply_along_axis(np.linalg.norm,2,distancematrix) # distances via linalg norm command on suitables axes
 # elements in H are now euler distances between those sites {i,j}
+
 
 J0=10
 BETA=0.6
@@ -115,25 +119,32 @@ np.fill_diagonal(H,-3.7)
 
 Hp=H+0.0 #no copy
 
-#dx=0.015
 if dx!=0.0:np.fill_diagonal(Hp,np.random.normal(loc=-3.7,scale=dx,size=n))
 
 
-#ALPHA = 0.12 # some kind of effective electron phonon coupling / dielectric of medium
 SCFSTEPS = 5
 
 
 siteEs=[]
 polarons=[]
+overlaps=[]
 
 for i in range(SCFSTEPS): # Number of SCF steps
-    evals,evecs=np.linalg.eigh(Hp)
-    polaron=evecs[:,0]*evecs[:,0] #lowest energy state electron density
+    evals,evecs=np.linalg.eigh(H)
+    pvals,pvecs=np.linalg.eigh(Hp)
+    for j in range(0,n):
+        psi0=evecs[:,j]
+        psi1=pvecs[:,state].reshape(1,n)
+        J=np.dot(psi0,np.inner(Hp,psi1))
+        overlaps.append(J)
+    max_overlap_idx=np.argmax(np.absolute(overlaps))
+    print max_overlap_idx
+    polaron=evecs[:,max_overlap_idx]*evecs[:,max_overlap_idx] #lowest energy state electron density
     polarons.append(polaron)
     Hp_diagonal = np.diagonal(Hp)
     siteEs.append(Hp_diagonal)
     np.fill_diagonal(Hp,Hp_diagonal-ALPHA*polaron)
-    
+    overlaps=[]
 
 print "Hamiltonian solved"
 #fig=pl.figure()
@@ -244,7 +255,7 @@ for i in range (0,n):
    polaron_evals[i,0]=pvals[i]
    polaron_evals[i,1]=polaron_size[i]
 
-np.savetxt("10_%s.dat"%(ALPHA),pvals,delimiter=' ',newline='\n')
+np.savetxt("10_%s_%s_%s.dat"%(dx,ALPHA,state),pvals,delimiter=' ',newline='\n')
 
 #savedata()
 
@@ -307,7 +318,7 @@ pl.xticks(visible=False)
 #Plot DoS
 pl.subplot(313)
 pl.hist(pvals,bins=np.linspace(min(pvals),max(pvals),100),histtype='stepfilled',color='r')
-pl.hist(evals,bins= np.linspace(min(pvals),max(pvals),100),histtype='stepfilled',color='b', alpha=0.5)
+#pl.hist(evals,bins= np.linspace(min(pvals),max(pvals),100),histtype='stepfilled',color='b', alpha=0.5)
 pl.ylabel("DoS")
 pl.yticks(fontsize=9)
 #pl.xlim(-6.5,-5)
