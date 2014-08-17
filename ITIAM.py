@@ -124,7 +124,7 @@ if dx!=0.0:np.fill_diagonal(Hp,np.random.normal(loc=-3.7,scale=dx,size=n))
 evals,evecs=np.linalg.eigh(H)
 
 
-SCFSTEPS = 10
+SCFSTEPS = 20
 
 
 siteEs=[]
@@ -142,7 +142,7 @@ for i in range(SCFSTEPS): # Number of SCF steps
     np.fill_diagonal(Hp,Hp_diagonal-ALPHA*polaron)
     for j in range(0,n):
         psi0=pvecs[:,j]
-        psi1=pvecs[:,state].reshape(1,n)
+        psi1=pvecs[:,max_overlap_idx].reshape(1,n)
         J=np.dot(psi0,np.inner(Hp,psi1))
         print J
         overlaps.append(J)
