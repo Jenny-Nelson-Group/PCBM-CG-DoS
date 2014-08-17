@@ -121,29 +121,33 @@ Hp=H+0.0 #no copy
 
 if dx!=0.0:np.fill_diagonal(Hp,np.random.normal(loc=-3.7,scale=dx,size=n))
 
+evals,evecs=np.linalg.eigh(H)
 
-SCFSTEPS = 5
+
+SCFSTEPS = 10
 
 
 siteEs=[]
 polarons=[]
 overlaps=[]
 
+max_overlap_idx=state
+
 for i in range(SCFSTEPS): # Number of SCF steps
-    evals,evecs=np.linalg.eigh(H)
     pvals,pvecs=np.linalg.eigh(Hp)
-    for j in range(0,n):
-        psi0=evecs[:,j]
-        psi1=pvecs[:,state].reshape(1,n)
-        J=np.dot(psi0,np.inner(Hp,psi1))
-        overlaps.append(J)
-    max_overlap_idx=np.argmax(np.absolute(overlaps))
-    print max_overlap_idx
-    polaron=evecs[:,max_overlap_idx]*evecs[:,max_overlap_idx] #lowest energy state electron density
+    polaron=pvecs[:,max_overlap_idx]*pvecs[:,max_overlap_idx] #lowest energy state electron density
     polarons.append(polaron)
     Hp_diagonal = np.diagonal(Hp)
     siteEs.append(Hp_diagonal)
     np.fill_diagonal(Hp,Hp_diagonal-ALPHA*polaron)
+    for j in range(0,n):
+        psi0=pvecs[:,j]
+        psi1=pvecs[:,state].reshape(1,n)
+        J=np.dot(psi0,np.inner(Hp,psi1))
+        print J
+        overlaps.append(J)
+        max_overlap_idx=np.argmax(np.absolute(overlaps))
+    print max_overlap_idx
     overlaps=[]
 
 print "Hamiltonian solved"
@@ -287,13 +291,13 @@ pl.subplot(311)
 #pl.fill_between(range(n),0,psi, facecolor='k')
 #pl.plot(range(n),pvecs[:,0],color='k')
 
-for j in range (0,1): #range(0,5): #Number of eigenvalues plotted (electron wavefns)
-    psi=pvecs[:,j]*pvecs[:,j]
+for j in range(0,1): #Number of eigenvalues plotted (electron wavefns)
+    psi=pvecs[:,state]*pvecs[:,state]
     pl.fill_between(range(n),0,psi, facecolor=colours[j%8])
 #pl.plot(range(n),pvecs[:,j],color=colours[j%8])
-pl.ylabel("Occupation")
+    pl.ylabel("Occupation")
 #pl.ylim((3.8,5.0))
-pl.yticks(fontsize=9)
+    pl.yticks(fontsize=9)
 #pl.xticks(visible=False)
 
 #Plot cumulative eigenvectors / probability density
