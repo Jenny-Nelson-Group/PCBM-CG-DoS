@@ -124,7 +124,7 @@ if dx!=0.0:np.fill_diagonal(Hp,np.random.normal(loc=-3.7,scale=dx,size=n))
 evals,evecs=np.linalg.eigh(H)
 
 
-SCFSTEPS = 20
+SCFSTEPS = 10
 
 
 siteEs=[]
@@ -134,20 +134,21 @@ overlaps=[]
 max_overlap_idx=state
 
 for i in range(SCFSTEPS): # Number of SCF steps
-    pvals,pvecs=np.linalg.eigh(Hp)
-    polaron=pvecs[:,max_overlap_idx]*pvecs[:,max_overlap_idx] #lowest energy state electron density
+    evals,evecs=np.linalg.eigh(Hp)
+    polaron=evecs[:,max_overlap_idx]*evecs[:,max_overlap_idx] #lowest energy state electron density
     polarons.append(polaron)
     Hp_diagonal = np.diagonal(Hp)
     siteEs.append(Hp_diagonal)
-    np.fill_diagonal(Hp,Hp_diagonal-ALPHA*polaron)
+    np.fill_diagonal(Hp,Hp_diagonal-ALPHA*(max_overlap_idx^2+1)*polaron)
+    pvals,pvecs=np.linalg.eigh(Hp)
     for j in range(0,n):
-        psi0=pvecs[:,j]
+        psi0=evecs[:,j]
         psi1=pvecs[:,max_overlap_idx].reshape(1,n)
         J=np.dot(psi0,np.inner(Hp,psi1))
-        print J
+        #print J
         overlaps.append(J)
         max_overlap_idx=np.argmax(np.absolute(overlaps))
-    print max_overlap_idx
+    #print max_overlap_idx
     overlaps=[]
 
 print "Hamiltonian solved"
