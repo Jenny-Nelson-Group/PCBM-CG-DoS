@@ -22,11 +22,17 @@ import datetime # current date for log files etc.
 now=datetime.datetime.now().strftime("%Y-%m-%d-%Hh%Mm") #String of standardised year-leading time
 
 def archivefigure(name="default"):
+
     fig.savefig("10_%s_%s_%s_%s.pdf"%(name,dx,ALPHA,state)) #Save figures as both PDF and easy viewing PNG (perfect for talks)
 #fig.savefig("%s-ITIAM_%s.png"%(now,name))
 
 def savedata(name="default"):
     np.savetxt("10_%s_%s.dat"%(dx,ALPHA),polaron_evals,delimiter=' ',newline='\n')
+    fig.savefig("%s-Tris_%s.pdf"%(name,ALPHA)) #Save figures as both PDF and easy viewing PNG (perfect for talks)
+#fig.savefig("%s-ITIAM_%s.png"%(now,name))
+
+def savedata(name="default"):
+    np.savetxt("%s-ITIAM_%s.dat"%(dx,name),polaron_evals,delimiter=' ',newline='\n')
 
 from IPython import embed# we do this so we can drop to interactive python for debugging; major Python coolio
  #  # --> embed() <-- just add this to any point in code, and TADA!
@@ -127,6 +133,10 @@ evals,evecs=np.linalg.eigh(H)
 SCFSTEPS = 10
 
 
+ALPHA = 0.5 # some kind of effective electron phonon coupling / dielectric of medium
+SCFSTEPS = 20
+
+
 siteEs=[]
 polarons=[]
 overlaps=[]
@@ -150,6 +160,7 @@ for i in range(SCFSTEPS): # Number of SCF steps
         max_overlap_idx=np.argmax(np.absolute(overlaps))
     #print max_overlap_idx
     overlaps=[]
+
 
 print "Hamiltonian solved"
 #fig=pl.figure()
@@ -243,6 +254,7 @@ for i in range(0,n):
     polaron_size[i] = sorted_r[j]
 
     for j in range(0,n):
+
         if prob[j]/max_prob>0.01:num[i]+=1
 
     centre = np.zeros(3)            #Reset centre coordinates and num
@@ -252,6 +264,13 @@ for i in range(0,n):
 #Find alpha and disorder that will localise polaron on 1 molecule (99%)
 #if num[0]==1:print "Localised with alpha= ", ALPHA, "and disorder= ", dx
 #else:exit(0)
+
+        if prob[j]/max_prob>0.05:num[i]+=1
+
+    centre = np.zeros(3)            #Reset centre coordinates and num
+
+#print num[0:10]
+
 
 #print polaron_size
 
@@ -264,6 +283,8 @@ np.savetxt("10_%s_%s_%s.dat"%(dx,ALPHA,state),pvals,delimiter=' ',newline='\n')
 
 #savedata()
 
+savedata("Bis")
+
 #Print number of molecules polaron localised over for first 10 eigenvalues
 
 fig=pl.figure()
@@ -272,7 +293,10 @@ pl.title("Size of polaron vs eigenvalue")
 pl.xlabel("Eigenvalues")
 pl.ylabel("Effective size of polaron")
 #pl.xlim(-3.88,-3.47)
+
 #pl.show()
+
+pl.show()
 
 #archivefigure("size")
 
@@ -324,6 +348,12 @@ pl.xticks(visible=False)
 pl.subplot(313)
 pl.hist(pvals,bins=np.linspace(min(pvals),max(pvals),100),histtype='stepfilled',color='r')
 #pl.hist(evals,bins= np.linspace(min(pvals),max(pvals),100),histtype='stepfilled',color='b', alpha=0.5)
+
+
+#Plot DoS
+pl.subplot(313)
+pl.hist(pvals,bins=np.linspace(min(pvals),max(pvals),100),histtype='stepfilled',color='r')
+pl.hist(evals,bins= np.linspace(min(pvals),max(pvals),100),histtype='stepfilled',color='b', alpha=0.5)
 pl.ylabel("DoS")
 pl.yticks(fontsize=9)
 #pl.xlim(-6.5,-5)
@@ -336,7 +366,10 @@ print "Lowest Eigenvalue:\n", evals[0]
 print "Saving figures...(one moment please)"
 pl.annotate("%s"%now,xy=(0.75,0.02),xycoords='figure fraction') #Date Stamp in corner
 
+
 archivefigure("DOS")
+#archivefigure("3fig")
+
 
 fp=open('eigenvector_balls_pymol.py','w')
 fp.write("from pymol.cgo import *    # get constants \nfrom pymol import cmd \n")
@@ -344,6 +377,7 @@ fp.write("from pymol.cgo import *    # get constants \nfrom pymol import cmd \n"
 psi=pvecs[:,0]*pvecs[:,0] # scale everything relative to max density on first eigenvector
 
 for ei,colour in zip( [0,1,3,5] , [(0,0,1),(0,1,0),(1,1,0),(1,0,0)]):
+    
     psi=pvecs[:,ei]*pvecs[:,ei]
     maxpsi=max(psi)
 
