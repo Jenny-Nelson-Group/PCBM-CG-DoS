@@ -129,11 +129,6 @@ if dx!=0.0:np.fill_diagonal(Hp,np.random.normal(loc=-3.7,scale=dx,size=n))
 
 evals,evecs=np.linalg.eigh(H)
 
-
-SCFSTEPS = 10
-
-
-ALPHA = 0.5 # some kind of effective electron phonon coupling / dielectric of medium
 SCFSTEPS = 20
 
 
