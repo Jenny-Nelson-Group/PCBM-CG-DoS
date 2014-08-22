@@ -131,9 +131,9 @@ def plotoverlaps(Evecs,Pvecs):
 
 
 #Calculating time evolution of wavefunction
-def timeevolution(Evecs,Pvals,Pvecs):
-    psi0=Evecs[:,0]
-    psi1=Pvecs[:,0]
+def timeevolution(Evecs,Evals,Pvecs):
+    psi0=Evecs[:,0]              #Original wavefunction
+    psi1=Pvecs[:,0]              #Localised wavefunction to propagate
     
     hbar=1
     dt=15
@@ -142,7 +142,8 @@ def timeevolution(Evecs,Pvals,Pvecs):
     psi_t=np.zeros(n)
     
     for i in range(0,n):
-        psi_t+=np.exp(-z*Pvals[i]*dt)*Pvecs[:,i]
+        a=np.inner(Evecs[:,i],psi1)
+        psi_t+=a*np.exp(-z*Evals[i]*dt)*Evecs[:,i]
     
     psi_t_occ=np.zeros(n)
     psi0_occ=np.zeros(n)               #Original wavefunction
@@ -441,7 +442,7 @@ print "Hamiltonian solved"
 
 #plotoverlaps(evecs,pvecs)
 
-timeevolution(evecs,pvals,pvecs)
+timeevolution(evecs,evals,pvecs)
 
 #polaron_size,num=sizeofpolaron(pvals,pvecs)
 
