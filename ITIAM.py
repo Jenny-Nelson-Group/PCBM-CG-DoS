@@ -135,36 +135,40 @@ def timeevolution(Evecs,Evals,Pvecs):
     psi0=Evecs[:,0]              #Original wavefunction
     psi1=Pvecs[:,0]              #Localised wavefunction to propagate
     
+    timesteps=1000
+    
+    psi_t_occ=np.zeros((n,timesteps))
+    psi0_occ=np.zeros(n)
+    psi1_occ=np.zeros(n)
+    
     hbar=1
-    dt=15
+    dt=1
     z=1j
     
-    psi_t=np.zeros(n)
+    psi_t=np.zeros((n,timesteps))
     
-    for i in range(0,n):
-        a=np.inner(Evecs[:,i],psi1)
-        psi_t+=a*np.exp(-z*Evals[i]*dt)*Evecs[:,i]
+    for t in range(0,timesteps):
+        for i in range(0,n):
+            a=np.inner(Evecs[:,i],psi1)
+            psi_t[:,t]+=a*np.exp(-z*Evals[i]*t*dt)*Evecs[:,i]
+
     
-    psi_t_occ=np.zeros(n)
-    psi0_occ=np.zeros(n)               #Original wavefunction
-    psi1_occ=np.zeros(n)               #Wavefunction localised by disorder/SCFsteps
+        psi_t_norm=np.linalg.norm(psi_t[:,t])      #Normalise
+        psi_t[:,t]=psi_t[:,t]/psi_t_norm
+
     
-    psi_t_norm=np.linalg.norm(psi_t)      #Normalise
-    psi_t=psi_t/psi_t_norm             #Time resolved for one time step
-    
-    print psi_t
-    
-    for i in range(0,n):
-        psi_t_occ[i]=psi_t[i]*np.conj(psi_t[i])
-        psi0_occ[i]=psi0[i]*np.conj(psi0[i])
-        psi1_occ[i]=psi1[i]*np.conj(psi1[i])
+        for j in range(0,n):
+            psi_t_occ[j,t]=psi_t[j,t]*np.conj(psi_t[j,t])
+            psi0_occ[j]=psi0[j]*np.conj(psi0[j])
+            psi1_occ[j]=psi1[j]*np.conj(psi1[j])
     
     fig=pl.figure()           #Plot original wavefunction, localised wavefunction and time evolved wavefunction
     
-    pl.fill_between(range(n),0,psi0_occ, facecolor='r',alpha=0.5)
-    pl.fill_between(range(n),0,psi1_occ,facecolor='y',alpha=0.5)
-    pl.fill_between(range(n),0,psi_t_occ, facecolor='b',alpha=0.5)
-    
+#pl.fill_between(range(n),0,psi0_occ, facecolor='y',alpha=0.5)
+#pl.fill_between(range(n),0,psi1_occ,facecolor='r',alpha=0.5)
+    for t in range(0,timesteps):
+        pl.fill_between(range(n),0,psi_t_occ[:,t],facecolor='b',alpha=0.1)
+
     fig.savefig("%s_%s_%s_time.pdf"%(dx,ALPHA,state))
 
 
