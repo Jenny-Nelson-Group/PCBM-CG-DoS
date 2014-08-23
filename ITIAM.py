@@ -74,35 +74,39 @@ def filldiagonal(Ham):
 
 #Self-consistent polaron generator to model self-trapping of polaron
 def SCpolarongenerator(Ham,Ham_p,):
-    SCFSTEPS = 20
+    SCFSTEPS = 5
     
     siteEs=[]
     polarons=[]
     overlaps=[]
+    pvecs_polaron=np.zeros((n,n))
     
-    max_overlap_idx=state
-    
-    for i in range(SCFSTEPS): # Number of SCF steps
-        evals,evecs=np.linalg.eigh(Ham_p)
-        polaron=evecs[:,max_overlap_idx]*evecs[:,max_overlap_idx] #lowest energy state electron density
-        polarons.append(polaron)
-        Hp_diagonal = np.diagonal(Ham_p)
-        siteEs.append(Hp_diagonal)
-        np.fill_diagonal(Ham_p,Hp_diagonal-ALPHA*polaron)
-        pvals,pvecs=np.linalg.eigh(Ham_p)
-        for j in range(0,n):
-            psi0=evecs[:,j]
-            psi1=pvecs[:,max_overlap_idx].reshape(1,n)
-            J=np.dot(psi0,np.inner(Ham_p,psi1))
-            #print J
-            overlaps.append(J)
-            max_overlap_idx=np.argmax(np.absolute(overlaps))
-        #print max_overlap_idx
-        overlaps=[]
-        for j in range(0,n):
-            if pvecs[j,state]*pvecs[j,state]>0.99:break
-                #print Ham
-    
+    for state in range(0,n):
+        max_overlap_idx=state
+        for i in range(SCFSTEPS): # Number of SCF steps
+            evals,evecs=np.linalg.eigh(Ham_p)
+            polaron=evecs[:,max_overlap_idx]*evecs[:,max_overlap_idx] #lowest energy state electron density
+            polarons.append(polaron)
+            Hp_diagonal = np.diagonal(Ham_p)
+            siteEs.append(Hp_diagonal)
+            np.fill_diagonal(Ham_p,Hp_diagonal-ALPHA*polaron)
+            pvals,pvecs=np.linalg.eigh(Ham_p)
+            for j in range(0,n):
+                psi0=evecs[:,j]
+                psi1=pvecs[:,max_overlap_idx].reshape(1,n)
+                J=np.dot(psi0,np.inner(Ham_p,psi1))
+                #print J
+                overlaps.append(J)
+                max_overlap_idx=np.argmax(np.absolute(overlaps))
+            #print max_overlap_idx
+            overlaps=[]
+            for j in range(0,n):
+                if pvecs[j,state]*pvecs[j,state]>0.99:break
+            
+            pvecs_polaron[:,state]=pvecs[:,0]
+            
+            np.savetxt("wf_%s_%s.dat"%(dx,ALPHA),pvecs_polaron,delimiter=' ',newline='\n')           #Saves lowest energy polaron for each state
+            
     return Ham,Ham_p
 
 
@@ -110,8 +114,9 @@ def SCpolarongenerator(Ham,Ham_p,):
 def solveHandHp(Ham,Ham_p):
     Evals,Evecs=np.linalg.eigh(Ham)
     Pvals,Pvecs=np.linalg.eigh(Ham_p)
+    np.savetxt("H_%s_%s.dat"%(dx,ALPHA),Ham,delimiter=' ',newline='\n')
+    
     return Evals,Evecs,Pvals,Pvecs
-#print Hp
 
 
 def plotoverlaps(Evecs,Pvecs):
@@ -283,8 +288,6 @@ def sizeofpolaron(Pvals,Pvecs):
     
     return Polaron_size,Num
     
-    
-    
     savedata("size")
 
 #Find alpha and disorder that will localise polaron on 1 molecule (99%)
@@ -443,7 +446,7 @@ dx = float(sys.argv[7])
 state = float(sys.argv[8])
 
 timesteps=1000      #no. of timesteps for animation
-dt=0.1519           #timestep for animation
+dt=0.1519           #timestep for animation 1.519=1 fs in these units
 
 
 # Load C60 locations from coordinate file. Format:-
@@ -488,8 +491,6 @@ fig=pl.figure
 
 
 
-
-
 #H=nearestneighbours(H)
 
 print "Generated Hamiltonian... "
@@ -510,9 +511,9 @@ print "Hamiltonian solved"
 
 #timeevolution(evecs,evals,pvecs)
 
-Animate()
+#Animate()
 
-#polaron_size,num=sizeofpolaron(pvals,pvecs)
+polaron_size,num=sizeofpolaron(pvals,pvecs)
 
 #localisationcriteria(num)
 
@@ -522,7 +523,7 @@ Animate()
 
 #plotDOS(evals,pvals)
 
-#plotocc(pvecs)
+plotocc(pvecs)
 
 #polaronvisualise()
 
