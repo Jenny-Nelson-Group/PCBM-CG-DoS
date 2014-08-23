@@ -13,6 +13,8 @@ import sys
 
 import pickle
 
+import matplotlib.animation as animation
+
 from sys import exit
 
 import datetime # current date for log files etc.
@@ -72,7 +74,7 @@ def filldiagonal(Ham):
 
 #Self-consistent polaron generator to model self-trapping of polaron
 def SCpolarongenerator(Ham,Ham_p,):
-    SCFSTEPS = 100
+    SCFSTEPS = 20
     
     siteEs=[]
     polarons=[]
@@ -142,7 +144,6 @@ def timeevolution(Evecs,Evals,Pvecs):
     psi1_occ=np.zeros(n)
     
     hbar=1
-    dt=1
     z=1j
     
     psi_t=np.zeros((n,timesteps))
@@ -150,7 +151,7 @@ def timeevolution(Evecs,Evals,Pvecs):
     for t in range(0,timesteps):
         for i in range(0,n):
             a=np.inner(Evecs[:,i],psi1)
-            psi_t[:,t]+=a*np.exp(-z*Evals[i]*t*dt)*Evecs[:,i]
+            psi_t[:,t]+=a*np.exp(-z*Evals[i]*dt)*Evecs[:,i]
 
     
         psi_t_norm=np.linalg.norm(psi_t[:,t])      #Normalise
@@ -164,12 +165,69 @@ def timeevolution(Evecs,Evals,Pvecs):
     
     fig=pl.figure()           #Plot original wavefunction, localised wavefunction and time evolved wavefunction
     
-#pl.fill_between(range(n),0,psi0_occ, facecolor='y',alpha=0.5)
-#pl.fill_between(range(n),0,psi1_occ,facecolor='r',alpha=0.5)
+    #pl.fill_between(range(n),0,psi0_occ, facecolor='y',alpha=0.5)
+    #pl.fill_between(range(n),0,psi1_occ,facecolor='r',alpha=0.5)
+    
     for t in range(0,timesteps):
         pl.fill_between(range(n),0,psi_t_occ[:,t],facecolor='b',alpha=0.1)
 
     fig.savefig("%s_%s_%s_time.pdf"%(dx,ALPHA,state))
+
+
+def calcocc(T,Evals,Evecs,Pvecs):
+    
+    psi0=Evecs[:,0]              #Original wavefunction
+    psi1=Pvecs[:,0]              #Localised wavefunction to propagate
+    
+    hbar=1
+    z=1j
+    
+    psi_t=np.zeros(n)
+    psi_t_occ=np.zeros(n)
+    
+
+    for i in range(0,n):
+        a=np.inner(Evecs[:,i],psi1)
+        psi_t+=a*np.exp(-z*Evals[i]*T/hbar)*Evecs[:,i]
+        
+        
+    psi_t_norm=np.linalg.norm(psi_t)      #Normalise
+    psi_t=psi_t/psi_t_norm
+        
+        
+    for j in range(0,n):
+        psi_t_occ[j]=psi_t[j]*np.conj(psi_t[j])
+
+    
+    return psi_t_occ
+
+
+def Animate():
+
+    fig=pl.figure()
+
+    xlim=(0,n)
+    ylim=(0,1)
+
+    ax = pl.axes(xlim=xlim,ylim=ylim)
+    psi_x_line, = ax.plot([],[],c='r')
+
+    def init():
+        psi_x_line.set_data([], [])
+        return psi_x_line,
+
+    def animate(i):
+        x=np.linspace(0,n,n)
+        y=calcocc(dt*i,evals,evecs,pvecs)
+        psi_x_line.set_data(x,y)
+
+        return psi_x_line,
+
+    anim=animation.FuncAnimation(fig,animate,init_func=init,frames=1000,interval=10,blit=False)
+
+    pl.show()
+
+    anim.save('wavefunction_propagation.mp4', writer='ffmpeg', fps=30, extra_args=['-vcodec', 'libx264'])
 
 
 #Find effective size of polaron and no. of molecules polaron localised over
@@ -384,6 +442,10 @@ ALPHA = float(sys.argv[6])
 dx = float(sys.argv[7])
 state = float(sys.argv[8])
 
+timesteps=1000      #no. of timesteps for animation
+dt=0.1519           #timestep for animation
+
+
 # Load C60 locations from coordinate file. Format:-
 #  X Y Z
 #  Assuming angstroms.
@@ -446,7 +508,9 @@ print "Hamiltonian solved"
 
 #plotoverlaps(evecs,pvecs)
 
-timeevolution(evecs,evals,pvecs)
+#timeevolution(evecs,evals,pvecs)
+
+Animate()
 
 #polaron_size,num=sizeofpolaron(pvals,pvecs)
 
