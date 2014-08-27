@@ -72,59 +72,136 @@ def filldiagonal(Ham):
     return Ham,Ham_p
 
 
-#Self-consistent polaron generator to model self-trapping of polaron
+#Self-consistent polaron generator to model self-trapping of polaron using lowest state electron density
+
 def SCpolarongenerator(Ham,Ham_p,):
-    SCFSTEPS = 5
+    SCFSTEPS = 20
     
     siteEs=[]
     polarons=[]
     overlaps=[]
     pvecs_polaron=np.zeros((n,n))
+    pvals_polaron=np.zeros((n,n))
+    pvecs_size=np.zeros((n,n))
+    Hp_diagonal = np.diagonal(Ham_p)
+    
+
+    max_overlap_idx=state
+    for i in range(SCFSTEPS): # Number of SCF steps
+        evals,evecs=np.linalg.eigh(Ham_p)
+        polaron=evecs[:,max_overlap_idx]*evecs[:,max_overlap_idx] #lowest energy state electron density
+        np.fill_diagonal(Ham_p,Hp_diagonal-ALPHA*polaron)
+        pvals,pvecs=np.linalg.eigh(Ham_p)
+        for j in range(0,n):
+            psi0=evecs[:,j]
+            psi1=pvecs[:,max_overlap_idx]
+            J=np.dot(psi0,np.inner(Ham_p,psi1))
+            #print J
+            overlaps.append(J)
+            max_overlap_idx=np.argmax(np.absolute(overlaps))
+                #print state, max_overlap_idx
+        overlaps=[]
+    
+    if state==0:pvecs_size=pvecs
+    
+    pvals_polaron[:,state]=pvals
+    pvecs_polaron[:,state]=pvecs[:,0]      #All lowest state polaron wavefuntions for calculation of J
+
+
+    return Ham,Ham_p,pvals_polaron,pvecs_polaron,pvecs_size
+
+
+#SC polaron self trapping effect using all states for localising polaron
+
+def SCpolarongenerator_allstates(Ham,Ham_p,):
+    SCFSTEPS = 20
+    
+    siteEs=[]
+    polarons=[]
+    overlaps=[]
+    pvecs_polaron=np.zeros((n,n))
+    pvals_polaron=np.zeros((n,n))
+    pvecs_size=np.zeros((n,n))
+    Hp_diagonal = np.diagonal(Ham_p)
     
     for state in range(0,n):
         max_overlap_idx=state
         for i in range(SCFSTEPS): # Number of SCF steps
             evals,evecs=np.linalg.eigh(Ham_p)
             polaron=evecs[:,max_overlap_idx]*evecs[:,max_overlap_idx] #lowest energy state electron density
-            polarons.append(polaron)
-            Hp_diagonal = np.diagonal(Ham_p)
-            siteEs.append(Hp_diagonal)
             np.fill_diagonal(Ham_p,Hp_diagonal-ALPHA*polaron)
             pvals,pvecs=np.linalg.eigh(Ham_p)
             for j in range(0,n):
                 psi0=evecs[:,j]
-                psi1=pvecs[:,max_overlap_idx].reshape(1,n)
+                psi1=pvecs[:,max_overlap_idx]
                 J=np.dot(psi0,np.inner(Ham_p,psi1))
                 #print J
                 overlaps.append(J)
                 max_overlap_idx=np.argmax(np.absolute(overlaps))
-            #print max_overlap_idx
+            #print state, max_overlap_idx
             overlaps=[]
-            for j in range(0,n):
-                if pvecs[j,state]*pvecs[j,state]>0.99:break
-            
-            pvecs_polaron[:,state]=pvecs[:,0]
-            
-            np.savetxt("wf_%s_%s.dat"%(dx,ALPHA),pvecs_polaron,delimiter=' ',newline='\n')           #Saves lowest energy polaron for each state
-            
-    return Ham,Ham_p
+    
+        if state==0:pvecs_size=pvecs
+    
+        pvals_polaron[:,state]=pvals
+        pvecs_polaron[:,state]=pvecs[:,0]      #All lowest state polaron wavefuntions for calculation of J
+    
+    
+    return Ham,Ham_p,pvals_polaron,pvecs_polaron,pvecs_size
+
 
 
 # solve final form of Hamiltonian (always computes here even if no SCF steps)
-def solveHandHp(Ham,Ham_p):
+def solveHandHp(Ham):
     Evals,Evecs=np.linalg.eigh(Ham)
-    Pvals,Pvecs=np.linalg.eigh(Ham_p)
-    np.savetxt("H_%s_%s.dat"%(dx,ALPHA),Ham,delimiter=' ',newline='\n')
-    
-    return Evals,Evecs,Pvals,Pvecs
+    return Evals,Evecs
 
 
-def plotoverlaps(Evecs,Pvecs):
+def localisepolaron(Ham,Ham_p):
+
+    Hp_diagonal = np.diagonal(Ham_p)
+    site=np.zeros(n)
+
+    for i in range(0,n):
+        site[i]=1
+        np.fill_diagonal(Ham_p,Hp_diagonal-ALPHA*site)
+    return Ham,Pvecs_polaron
+
+
+def CalculateJ(Ham,Pvecs_polaron):
+    Jif = np.zeros((n,n))
+    for i in range(0,n):
+        for j in range(0,n):
+            if i!=j:
+                Jif[i,j]=np.dot(Pvecs_polaron[:,i],np.inner(Ham,Pvecs_polaron[:,j]))
+
+    np.savetxt("J_mono.dat",Jif,delimiter=' ',newline='\n')
+
+    return Jif
+
+
+#def MarcusRate(Jif,Pvals_polaron):
+#    Gamma=np.zeros((n,n))
+#    hbar=6.582*10**-16
+#    lambda=2*ALPHA
+#    kb=8.617*10**-5
+#    T=300
+
+#    for i in range(0,n):
+#        for j in range(0,n):
+#            deltaE=Pvals_polaron[0,j]-Pvals_polaron[0,i]
+#            Gamma[i,j]=(2*np.pi*Jif[i,j]*Jif[i,j]/hbar)*(4*np.pi*lambda*kb*T)**-0.5*np.exp(-((deltaE*lambda)**2)/(4*lambda*kb*T))
+
+#    np.savetxt("Marcus_rate",Gamma,delimiter=' ',newline='\n')
+
+
+
+def plotoverlaps(Evecs,Pvecs_polaron):
     polarons=[]
     overlaps=[]
     for state in range(n): #:[0,1,2,3]: #range(n): #[1,2,3,500]:
         psi0=Evecs[:,state] #.reshape(1,n)
-        psi1=Pvecs[:,0].reshape(1,n)
+        psi1=Pvecs_polaron[:,0].reshape(1,n)
         J=np.dot(psi0,np.inner(H,psi1))
         overlaps.append(J)
         polarons.append(state)
@@ -138,51 +215,72 @@ def plotoverlaps(Evecs,Pvecs):
 
 
 #Calculating time evolution of wavefunction
-def timeevolution(Evecs,Evals,Pvecs):
+def timeevolution(Evecs,Evals,Pvecs_polaron):
     psi0=Evecs[:,0]              #Original wavefunction
-    psi1=Pvecs[:,0]              #Localised wavefunction to propagate
+    psi1=Pvecs_polaron[:,0]      #Localised wavefunction to propagate
+    centre=np.zeros(3)
     
     timesteps=1000
-    
-    psi_t_occ=np.zeros((n,timesteps))
-    psi0_occ=np.zeros(n)
     psi1_occ=np.zeros(n)
+    psi_t_occ=np.zeros((n,timesteps))
     
-    hbar=1
+    hbar=6.582*10**-16
     z=1j
     
-    psi_t=np.zeros((n,timesteps))
+    psi_t=np.zeros((n,timesteps))    #Time evolved wavefunction
+    r=np.zeros(n)                    #Distance of electron density from centre
+    Sort_r=np.zeros((n,timesteps))
+    Sort_psi_t_occ=np.zeros((n,timesteps))
     
-    for t in range(0,timesteps):
+    for i in range(0,n):
+        psi1_occ[i]=psi1[i]*np.conj(psi1[i])
+    
+    max_index=np.argmax(psi1_occ)
+    centre[0]=locations[max_index,0]
+    centre[1]=locations[max_index,1]
+    centre[2]=locations[max_index,2]
+
+#Positions of all molecules from max occupied one
+    
+    for j in range(0,n):
+        r[j]=np.sqrt((centre[0]-locations[j,0])*(centre[0]-locations[j,0])+(centre[1]-locations[j,1])*(centre[1]-locations[j,1])+(centre[2]-locations[j,2])*(centre[2]-locations[j,2]))
+        
+    idx=np.argsort(r)      #Sort distances
+    Sort_r=r[idx]
+
+
+    for t in range(0,10):
         for i in range(0,n):
             a=np.inner(Evecs[:,i],psi1)
-            psi_t[:,t]+=a*np.exp(-z*Evals[i]*dt)*Evecs[:,i]
+            psi_t[:,t]+=a*np.exp((-z*Evals[i]*dt*t)/hbar)*Evecs[:,i]
 
-    
         psi_t_norm=np.linalg.norm(psi_t[:,t])      #Normalise
         psi_t[:,t]=psi_t[:,t]/psi_t_norm
 
     
         for j in range(0,n):
             psi_t_occ[j,t]=psi_t[j,t]*np.conj(psi_t[j,t])
-            psi0_occ[j]=psi0[j]*np.conj(psi0[j])
-            psi1_occ[j]=psi1[j]*np.conj(psi1[j])
-    
-    fig=pl.figure()           #Plot original wavefunction, localised wavefunction and time evolved wavefunction
-    
-    #pl.fill_between(range(n),0,psi0_occ, facecolor='y',alpha=0.5)
-    #pl.fill_between(range(n),0,psi1_occ,facecolor='r',alpha=0.5)
-    
-    for t in range(0,timesteps):
-        pl.fill_between(range(n),0,psi_t_occ[:,t],facecolor='b',alpha=0.1)
 
-    fig.savefig("%s_%s_%s_time.pdf"%(dx,ALPHA,state))
+        Sort_psi_t_occ[:,t]=psi_t_occ[idx,t]     #Sort occupations with distances
+
+    print Sort_psi_t_occ
+
+    fig=pl.figure()           #Plot time evolved wavefunction for different dts
+    
+    for t in range(0,10):
+        pl.plot(Sort_r,Sort_psi_t_occ[:,t],color='k')
+    #pl.yticks(visible=False)
+    
+
+    fig.savefig("%s_%s_time.pdf"%(dx,ALPHA))
 
 
-def calcocc(T,Evals,Evecs,Pvecs):
+
+
+def calcocc(T,Evals,Evecs,Pvecs_polaron):
     
     psi0=Evecs[:,0]              #Original wavefunction
-    psi1=Pvecs[:,0]              #Localised wavefunction to propagate
+    psi1=Pvecs_polaron           #Localised wavefunction to propagate
     
     hbar=1
     z=1j
@@ -236,7 +334,7 @@ def Animate():
 
 
 #Find effective size of polaron and no. of molecules polaron localised over
-def sizeofpolaron(Pvals,Pvecs):
+def sizeofpolaron(Pvals_polaron,Pvecs_size):
     centre = np.zeros(3)
     prob = np.zeros(n)
     r = np.zeros(n)
@@ -248,7 +346,7 @@ def sizeofpolaron(Pvals,Pvecs):
     for i in range(0,n):
         
         for j in range(0,n):
-            prob[j]=Pvecs[j,i]*Pvecs[j,i]
+            prob[j]=Pvecs_size[j,i]*Pvecs_size[j,i]
         max_index=np.argmax(prob)
         centre[0]=locations[max_index,0]
         centre[1]=locations[max_index,1]
@@ -283,7 +381,7 @@ def sizeofpolaron(Pvals,Pvecs):
     
     polaron_evals=np.zeros((n,2))
     for i in range (0,n):
-        polaron_evals[i,0]=Pvals[i]
+        polaron_evals[i,0]=Pvals_polaron[i,0]
         polaron_evals[i,1]=Polaron_size[i]
     
     return Polaron_size,Num
@@ -297,39 +395,35 @@ def localisationcriteria(Num):
 
 
 #Print number of molecules polaron localised over for first 10 eigenvalues
-def plotsize(Pvals,Polaron_size):
+def plotsize(Pvals_polaron,Polaron_size):
     fig=pl.figure()
-    pl.bar(Pvals[0:10],Polaron_size[0:10],0.00001)
+    pl.bar(Pvals_polaron[0:10,0],Polaron_size[0:10],0.00001)
     #pl.title("Size of polaron vs eigenvalue")
     pl.xlabel("Eigenvalues")
     pl.ylabel("Effective size of polaron")
+    pl.ylim(0,120)
     #pl.xlim(-3.88,-3.47)
     
     #pl.show()
     #fig.savefig("Sizeofpolaron.pdf")
     
     #archivefigure("Size")
-    fig.savefig("%s_%s_%s_Size.pdf"%(dx,ALPHA,state))
+    fig.savefig("%s_%s_Size.pdf"%(dx,ALPHA))
 
 
 
 #Plot Occupation, cumulative probailities and DOS
-def plot3fig(Pvals,Pvecs):
+def plot3fig(Pvals_polaron,Pvecs_polaron):
     fig=pl.figure()
-    
-    pl.title("DoS by TightBinding")
-    pl.subplot(311) #3 subplots stacked on top of one another
-    
-    #Plot Eigenvalues with filled-in Eigenvectors^2 / electron probabilities
-    pl.subplot(311)
-    
-    psi=Pvecs[:,state]*Pvecs[:,state]
-    pl.fill_between(range(n),0,psi, facecolor='blue')
+    for state in range(0,n):
+        psi=Pvecs_polaron[:,state]*Pvecs_polaron[:,state]
+        pl.fill_between(range(n),0,psi,facecolor=colours[state%8],alpha=0.5)
     #pl.plot(range(n),pvecs[:,j],color=colours[j%8])
     pl.ylabel("Occupation")
     #pl.ylim((3.8,5.0))
     pl.yticks(fontsize=9)
     #pl.xticks(visible=False)
+    
     
     #Plot cumulative eigenvectors / probability density
     pl.subplot(312)
@@ -353,8 +447,8 @@ def plot3fig(Pvals,Pvecs):
     #Plot DoS
     pl.subplot(313)
     
-    pl.hist(Pvals,bins=np.linspace(min(Pvals),max(Pvals),100),histtype='stepfilled',color='r')
-    pl.hist(evals,bins= np.linspace(min(pvals),max(pvals),100),histtype='stepfilled',color='b', alpha=0.5)
+    pl.hist(Pvals_polaron,bins=np.linspace(min(Pvals_polaron[:,0]),max(Pvals_polaron[:,0]),100),histtype='stepfilled',color='r')
+    pl.hist(evals,bins= np.linspace(min(Pvals_polaron[:,0]),max(Pvals_polaron[:,0]),100),histtype='stepfilled',color='b', alpha=0.5)
     pl.ylabel("DoS")
     pl.yticks(fontsize=9)
     #pl.xlim(-6.5,-5)
@@ -366,24 +460,26 @@ def plot3fig(Pvals,Pvecs):
 #    archivefigure("3fig")
 
 #Plot DOS
-def plotDOS(Evals,Pvals):
+def plotDOS(Evals,Pvals_polaron):
     fig=pl.figure()
-    pl.hist(Pvals,bins=np.linspace(min(pvals),max(pvals),100),histtype='stepfilled',color='r')
-    pl.hist(Evals,bins= np.linspace(min(pvals),max(pvals),100),histtype='stepfilled',color='b', alpha=0.5)
+    pl.hist(Pvals_polaron[:,0],bins=np.linspace(min(Pvals_polaron[:,0]),max(Pvals_polaron[:,0]),100),histtype='stepfilled',color='r')
+    pl.hist(Evals,bins= np.linspace(min(Pvals_polaron[:,0]),max(Pvals_polaron[:,0]),100),histtype='stepfilled',color='b', alpha=0.5)
+    pl.xlabel("Energy (eV)")
     pl.ylabel("DoS")
     pl.yticks(fontsize=9)
     #pl.xlim(-6.5,-5)
     
     #pl.show()
-    fig.savefig("%s_%s_%s_DOS.pdf"%(dx,ALPHA,state))
+    fig.savefig("%s_%s_DOS.pdf"%(dx,ALPHA))
 
 #    archivefigure("DOS")
 
-#Plot occupation of given state
-def plotocc(Pvecs):
+#Plot occupation of lowest energy for localisation with each state
+def plotocc(Pvecs_polaron):
     fig=pl.figure()
-    psi=Pvecs[:,state]*Pvecs[:,state]
-    pl.fill_between(range(n),0,psi, facecolor='b')
+    for state in range(0,n):
+        psi=Pvecs_polaron[:,state]*Pvecs_polaron[:,state]
+        pl.fill_between(range(n),0,psi,facecolor=colours[state%8],alpha=0.5)
     #pl.plot(range(n),pvecs[:,j],color=colours[j%8])
     pl.ylabel("Occupation")
     #pl.ylim((3.8,5.0))
@@ -391,17 +487,17 @@ def plotocc(Pvecs):
     #pl.xticks(visible=False)
     
     #pl.show()
-    fig.savefig("%s_%s_%s_Occ.pdf"%(dx,ALPHA,state))
+    fig.savefig("%s_%s_AllOcc.pdf"%(dx,ALPHA))
 
-def polaronvisualise():
+def polaronvisualise(Pvecs_size):
     fp=open('eigenvector_balls_pymol.py','w')
     fp.write("from pymol.cgo import *    # get constants \nfrom pymol import cmd \n")
     
-    psi=Pvecs[:,0]*Pvecs[:,0] # scale everything relative to max density on first eigenvector
+    psi=Pvecs_size[:,0]*Pvecs_size[:,0] # scale everything relative to max density on first eigenvector
     
     for ei,colour in zip( [0,1,3,5] , [(0,0,1),(0,1,0),(1,1,0),(1,0,0)]):
         
-        psi=Pvecs[:,ei]*Pvecs[:,ei]
+        psi=Pvecs_size[:,ei]*Pvecs_size[:,ei]
         maxpsi=max(psi)
         
         fp.write("obj = [\n")
@@ -446,8 +542,7 @@ dx = float(sys.argv[7])
 state = float(sys.argv[8])
 
 timesteps=1000      #no. of timesteps for animation
-dt=0.1519           #timestep for animation 1.519=1 fs in these units
-
+dt=1*10**-14           #timestep for animation
 
 # Load C60 locations from coordinate file. Format:-
 #  X Y Z
@@ -501,31 +596,44 @@ H,Hp=filldiagonal(H)
 
 print "Hamiltonian fully setup, time to solve!"
 
-H,Hp=SCpolarongenerator(H,Hp)
 
-evals,evecs,pvals,pvecs = solveHandHp(H,Hp)
+#Use this one for localising just with lowest state for calculating size and time evolution
+
+H,Hp,pvals_polaron,pvecs_polaron,pvecs_size=SCpolarongenerator(H,Hp)
+
+#Use this one for localising using all states for calculating J
+
+#H,Hp,pvals_polaron,pvecs_polaron,pvecs_size=SCpolarongenerator_allstates(H,Hp)
+
+
+
+evals,evecs = solveHandHp(H)
+
+#print "Calculating J"
+
+#J=CalculateJ(H,pvecs_polaron)
 
 print "Hamiltonian solved"
 
 #plotoverlaps(evecs,pvecs)
 
-#timeevolution(evecs,evals,pvecs)
+timeevolution(evecs,evals,pvecs_polaron)
 
 #Animate()
 
-polaron_size,num=sizeofpolaron(pvals,pvecs)
+#polaron_size,num=sizeofpolaron(pvals_polaron,pvecs_size)
 
 #localisationcriteria(num)
 
-#plotsize(pvals,polaron_size)
+#plotsize(pvals_polaron,polaron_size)
 
-#plot3fig(pvals,pvecs)
+#plot3fig(pvals_polaron,pvecs_polaron)
 
-#plotDOS(evals,pvals)
+#plotDOS(evals,pvals_polaron)
 
-plotocc(pvecs)
+#plotocc(pvecs_polaron)
 
-#polaronvisualise()
+#polaronvisualise(pvecs_size)
 
 print "Saving figures...(one moment please)"
 
