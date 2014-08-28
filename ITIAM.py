@@ -8,6 +8,9 @@
 import numpy as np
 # Matplotlib
 import matplotlib.pyplot as pl
+from mpl_toolkits.mplot3d import Axes3D
+from matplotlib.collections import PolyCollection
+
 # Sys for arg passing
 import sys
 
@@ -214,62 +217,90 @@ def plotoverlaps(Evecs,Pvecs_polaron):
 #    archivefigure("POO")
 
 
-#Calculating time evolution of wavefunction
-def timeevolution(Evecs,Evals,Pvecs_polaron):
+def calcocc(T,Evals,Evecs,Pvecs_polaron):
+    
     psi0=Evecs[:,0]              #Original wavefunction
     psi1=Pvecs_polaron[:,0]      #Localised wavefunction to propagate
     centre=np.zeros(3)
-    
-    timesteps=1000
     psi1_occ=np.zeros(n)
-    psi_t_occ=np.zeros((n,timesteps))
+    r=np.zeros(n)
     
-    hbar=6.582*10**-16
-    z=1j
-    
-    psi_t=np.zeros((n,timesteps))    #Time evolved wavefunction
-    r=np.zeros(n)                    #Distance of electron density from centre
-    Sort_r=np.zeros((n,timesteps))
-    Sort_psi_t_occ=np.zeros((n,timesteps))
     
     for i in range(0,n):
         psi1_occ[i]=psi1[i]*np.conj(psi1[i])
+    
     
     max_index=np.argmax(psi1_occ)
     centre[0]=locations[max_index,0]
     centre[1]=locations[max_index,1]
     centre[2]=locations[max_index,2]
-
-#Positions of all molecules from max occupied one
+    
+    
+    #Positions of all molecules from max occupied one
     
     for j in range(0,n):
         r[j]=np.sqrt((centre[0]-locations[j,0])*(centre[0]-locations[j,0])+(centre[1]-locations[j,1])*(centre[1]-locations[j,1])+(centre[2]-locations[j,2])*(centre[2]-locations[j,2]))
-        
-    idx=np.argsort(r)      #Sort distances
-    Sort_r=r[idx]
-
-
-    for t in range(0,10):
-        for i in range(0,n):
-            a=np.inner(Evecs[:,i],psi1)
-            psi_t[:,t]+=a*np.exp((-z*Evals[i]*dt*t)/hbar)*Evecs[:,i]
-
-        psi_t_norm=np.linalg.norm(psi_t[:,t])      #Normalise
-        psi_t[:,t]=psi_t[:,t]/psi_t_norm
-
     
-        for j in range(0,n):
-            psi_t_occ[j,t]=psi_t[j,t]*np.conj(psi_t[j,t])
+    
+    idx=np.argsort(r)      #Sort distances
+    sort_r=r[idx]
+    
+    hbar=6.582*10**-16
+    z=1j
+    
+    dt=5*10**-15           #timestep for plots
+    
+    psi_t=np.zeros(n)
+    psi_t_occ=np.zeros(n)
+    
+    
+    for i in range(0,n):
+        a=np.inner(Evecs[:,i],psi1)
+        psi_t+=a*np.exp(-z*Evals[i]*dt*T/hbar)*Evecs[:,i]
+    
+    
+    psi_t_norm=np.linalg.norm(psi_t)      #Normalise
+    psi_t=psi_t/psi_t_norm
+    
+    
+    for j in range(0,n):
+        psi_t_occ[j]=psi_t[j]*np.conj(psi_t[j])
 
-        Sort_psi_t_occ[:,t]=psi_t_occ[idx,t]     #Sort occupations with distances
+    psi_occ=psi_t_occ[idx]
+    
+    
+    return sort_r, psi_occ
 
-    print Sort_psi_t_occ
+
+
+def plotpropagation():
+    
+    tsteps=10              #No. of plots
+
+    Z=np.zeros((n,tsteps))
+    T=np.linspace(0,tsteps,tsteps)
+    
+    for t in range(0,tsteps):
+
+        X,Z[:,t]=calcocc(t,evals,evecs,pvecs_polaron)
+    
 
     fig=pl.figure()           #Plot time evolved wavefunction for different dts
+
+    ax = fig.add_subplot(111, projection='3d')
     
-    for t in range(0,10):
-        pl.plot(Sort_r,Sort_psi_t_occ[:,t],color='k')
-    #pl.yticks(visible=False)
+    verts = []
+    for i in xrange(T.shape[0]):
+        verts.append(zip(X[0:150], Z[:,i]))
+    
+
+    poly = PolyCollection(verts, facecolors=(1,1,1,1), edgecolors=(0,0,1,1))
+    ax.add_collection3d(poly, zs=T, zdir='y')
+    ax.set_xlim3d(np.min(X), 40)
+    ax.set_ylim3d(np.min(T), np.max(T))
+    ax.set_zlim3d(np.min(Z[:,0]), np.max(Z[:,0]))
+
+    pl.show()
     
 
     fig.savefig("%s_%s_time.pdf"%(dx,ALPHA))
@@ -277,39 +308,11 @@ def timeevolution(Evecs,Evals,Pvecs_polaron):
 
 
 
-def calcocc(T,Evals,Evecs,Pvecs_polaron):
-    
-    psi0=Evecs[:,0]              #Original wavefunction
-    psi1=Pvecs_polaron           #Localised wavefunction to propagate
-    
-    hbar=1
-    z=1j
-    
-    psi_t=np.zeros(n)
-    psi_t_occ=np.zeros(n)
-    
-
-    for i in range(0,n):
-        a=np.inner(Evecs[:,i],psi1)
-        psi_t+=a*np.exp(-z*Evals[i]*T/hbar)*Evecs[:,i]
-        
-        
-    psi_t_norm=np.linalg.norm(psi_t)      #Normalise
-    psi_t=psi_t/psi_t_norm
-        
-        
-    for j in range(0,n):
-        psi_t_occ[j]=psi_t[j]*np.conj(psi_t[j])
-
-    
-    return psi_t_occ
-
-
 def Animate():
 
     fig=pl.figure()
 
-    xlim=(0,n)
+    xlim=(0,60)
     ylim=(0,1)
 
     ax = pl.axes(xlim=xlim,ylim=ylim)
@@ -320,8 +323,9 @@ def Animate():
         return psi_x_line,
 
     def animate(i):
-        x=np.linspace(0,n,n)
-        y=calcocc(dt*i,evals,evecs,pvecs)
+        sort_r,psi_occ=calcocc(i,evals,evecs,pvecs_polaron)
+        x=sort_r
+        y=psi_occ
         psi_x_line.set_data(x,y)
 
         return psi_x_line,
@@ -541,8 +545,6 @@ ALPHA = float(sys.argv[6])
 dx = float(sys.argv[7])
 state = float(sys.argv[8])
 
-timesteps=1000      #no. of timesteps for animation
-dt=1*10**-14           #timestep for animation
 
 # Load C60 locations from coordinate file. Format:-
 #  X Y Z
@@ -606,7 +608,6 @@ H,Hp,pvals_polaron,pvecs_polaron,pvecs_size=SCpolarongenerator(H,Hp)
 #H,Hp,pvals_polaron,pvecs_polaron,pvecs_size=SCpolarongenerator_allstates(H,Hp)
 
 
-
 evals,evecs = solveHandHp(H)
 
 #print "Calculating J"
@@ -617,9 +618,11 @@ print "Hamiltonian solved"
 
 #plotoverlaps(evecs,pvecs)
 
-timeevolution(evecs,evals,pvecs_polaron)
+#timeevolution(evals,evecs,pvecs_polaron)
 
-#Animate()
+plotpropagation()
+
+Animate()
 
 #polaron_size,num=sizeofpolaron(pvals_polaron,pvecs_size)
 
@@ -629,9 +632,9 @@ timeevolution(evecs,evals,pvecs_polaron)
 
 #plot3fig(pvals_polaron,pvecs_polaron)
 
-#plotDOS(evals,pvals_polaron)
+plotDOS(evals,pvals_polaron)
 
-#plotocc(pvecs_polaron)
+plotocc(pvecs_polaron)
 
 #polaronvisualise(pvecs_size)
 
